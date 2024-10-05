@@ -36,8 +36,8 @@ def simulate(simulation_months, config):
     MSI_MIN = config['MSI_MIN']
     MSI_MAX = config['MSI_MAX']
     ADOPTION_GROWTH_RATE = config['ADOPTION_GROWTH_RATE']
-    MAX_MISSIONS = config.get('MAX_MISSIONS', 10000)  # Maximum missions per month
-    initial_num_missions = config['initial_num_missions']
+    initial_new_missions = config['initial_new_missions']
+    mission_duration = config['mission_duration']
     token_distribution = config['token_distribution']
     builders_lockup_period = config['builders_lockup_period']
     builders_vesting_period = config['builders_vesting_period']
@@ -100,8 +100,11 @@ def simulate(simulation_months, config):
     # Testnet development tokens vesting schedule (assuming immediate release)
     circulating_supply += testnet_development_tokens  # Add to circulating supply
 
-    # Initialize number of missions
-    num_missions = initial_num_missions
+    # Initialize mission tracking
+    active_missions = []  # List to store active missions
+
+    # Initialize number of new missions per month
+    new_missions_per_month = initial_new_missions
 
     # Main simulation loop
     for month in range(1, simulation_months + 1):
@@ -133,27 +136,30 @@ def simulate(simulation_months, config):
         if circulating_supply > total_supply:
             circulating_supply = total_supply
 
-        # Determine number of missions with logistic growth
-        # Logistic growth parameters
-        carrying_capacity = MAX_MISSIONS  # Maximum missions per month
-        growth_rate = ADOPTION_GROWTH_RATE  # Growth rate
+        # Start New Missions
+        new_missions = int(new_missions_per_month)
+        new_missions_per_month *= (1 + ADOPTION_GROWTH_RATE / 100)  # Convert percentage to decimal
+        for _ in range(new_missions):
+            # Create a new mission
+            mission = {
+                'start_month': month,
+                'end_month': month + mission_duration - 1,
+                'success': None  # Will be determined at mission end
+            }
+            active_missions.append(mission)
 
-        num_missions = int((carrying_capacity * num_missions * np.exp(growth_rate)) / (carrying_capacity + num_missions * (np.exp(growth_rate) -1)))
-
-        # Ensure number of missions does not exceed carrying capacity
-        num_missions = min(num_missions, MAX_MISSIONS)
-
-        # Initialize monthly metrics
+        # Process Ending Missions
+        ending_missions = [m for m in active_missions if m['end_month'] == month]
         tokens_staked = 0
         tokens_burnt = 0
         tokens_fee_distributed = 0
         tokens_fee_to_dao = 0
         net_token_demand = 0
 
-        # Simulate each mission
-        for _ in range(num_missions):
-            # Randomly choose fellowship configuration
-            fellowship_size = random.choice([1, 2, 2, 3])  # Bias towards configurations with more members
+        for mission in ending_missions:
+            # Determine mission outcome
+            mission_success = random.random() < MISSION_SUCCESS_RATE
+            mission['success'] = mission_success
 
             # Calculate protocol fee in $POLN
             protocol_fee_usd = PROJECT_COST * PROTOCOL_FEE_RATE
@@ -165,9 +171,6 @@ def simulate(simulation_months, config):
 
             # Calculate staking amount
             staking_amount = protocol_fee_poln * STAKING_RATE
-
-            # Determine mission outcome
-            mission_success = random.random() < MISSION_SUCCESS_RATE
 
             if mission_success:
                 # Mission succeeded
@@ -190,6 +193,9 @@ def simulate(simulation_months, config):
                 net_token_demand += protocol_fee_poln - staking_amount
 
             tokens_staked += staking_amount
+
+            # Remove mission from active missions
+            active_missions.remove(mission)
 
         # Update circulating supply by subtracting burnt tokens
         circulating_supply -= tokens_burnt
@@ -224,7 +230,8 @@ def simulate(simulation_months, config):
             'Total Burnt Tokens': total_burnt_tokens,
             'Market Sentiment Index': MSI,
             'Net Token Demand': net_token_demand,
-            'Number of Missions': num_missions,
+            'Number of New Missions': new_missions,
+            'Number of Ongoing Missions': len(active_missions),
         })
 
     # Convert results to a pandas DataFrame

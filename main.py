@@ -22,6 +22,9 @@ from simulation import simulate
 np.random.seed(42)
 
 def main():
+    """
+    Main function to run the simulation and plot results.
+    """
     # Use the configuration file specified in the command-line arguments
     config_file_name = sys.argv[1] if len(sys.argv) > 1 else 'config.json'
     with open(config_file_name, 'r') as config_file:
@@ -38,37 +41,46 @@ def main():
         df = simulate(simulation_months, config)
 
         # Plotting the results
-        plt.figure(figsize=(14, 14))
+        plt.figure(figsize=(14, 16))
 
         # Plot Circulating Supply and Total Burnt Tokens
-        plt.subplot(4, 1, 1)
+        plt.subplot(5, 1, 1)
         plt.plot(df['Month'], df['Circulating Supply'], label='Circulating Supply')
         plt.plot(df['Month'], df['Total Burnt Tokens'], label='Total Burnt Tokens')
-        plt.title(f'$POLN Token Circulation over {years} Years')
+        plt.title(f'$POLN Token Supply over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.legend()
 
         # Plot Token Price
-        plt.subplot(4, 1, 2)
+        plt.subplot(5, 1, 2)
         plt.plot(df['Month'], df['Token Price'], color='green')
         plt.title(f'$POLN Token Price over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Token Price in USD')
 
         # Plot DAO Treasury Balance
-        plt.subplot(4, 1, 3)
+        plt.subplot(5, 1, 3)
         plt.plot(df['Month'], df['DAO Treasury'], color='purple')
         plt.title(f'DAO Treasury Balance over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Tokens in DAO Treasury')
 
-        # Plot Number of Missions
-        plt.subplot(4, 1, 4)
-        plt.plot(df['Month'], df['Number of Missions'], color='orange')
-        plt.title(f'Number of Missions over {years} Years')
+        # Plot Number of New and Ongoing Missions
+        plt.subplot(5, 1, 4)
+        plt.plot(df['Month'], df['Number of New Missions'], label='New Missions')
+        plt.plot(df['Month'], df['Number of Ongoing Missions'], label='Ongoing Missions')
+        plt.title(f'Missions over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Number of Missions')
+        plt.legend()
+
+        # Plot Market Sentiment Index
+        plt.subplot(5, 1, 5)
+        plt.plot(df['Month'], df['Market Sentiment Index'], color='orange')
+        plt.title(f'Market Sentiment Index over {years} Years')
+        plt.xlabel('Month')
+        plt.ylabel('MSI')
 
         plt.tight_layout()
         plt.show()
@@ -77,9 +89,11 @@ def main():
         print(f"--- Interpretation after {years} years ---")
         final_price = df['Token Price'].iloc[-1]
         final_supply = df['Circulating Supply'].iloc[-1]
+        final_total_supply = df['Total Supply'].iloc[-1]
         total_burnt = df['Total Burnt Tokens'].iloc[-1]
         dao_balance = df['DAO Treasury'].iloc[-1]
         print(f"Final Token Price: ${final_price:.2f}")
+        print(f"Final Total Supply: {final_total_supply:.2f} tokens")
         print(f"Final Circulating Supply: {final_supply:.2f} tokens")
         print(f"Total Tokens Burnt: {total_burnt:.2f} tokens")
         print(f"DAO Treasury Balance: {dao_balance:.2f} tokens")
