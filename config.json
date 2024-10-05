@@ -1,0 +1,32 @@
+{
+    "TOTAL_SUPPLY": 200000000,
+    "INITIAL_PRICE": 1.50,
+    "PROJECT_COST": 10000,
+    "PROTOCOL_FEE_RATE": 0.02,
+    "STAKING_RATE": 0.10,
+    "MISSION_SUCCESS_RATE": 0.90,
+    "MAX_MISSIONS": 100000, 
+    "PEC": 0.5,
+    "MSI_MIN": 0.9,
+    "MSI_MAX": 10.1,
+    "ADOPTION_GROWTH_RATE": 2.02,
+    "SIMULATION_YEARS": [3, 5, 10],
+    "MONTHS_PER_YEAR": 12,
+    "initial_num_missions": 100,
+    "token_distribution": {
+        "Public Sales": 0.30,
+        "Initiator Rewards": 0.20,
+        "Builders": 0.10,
+        "Private Sales": 0.25,
+        "DAO Treasury": 0.10,
+        "Testnet Development & Partners": 0.02,
+        "Airdrops & Giveaways": 0.03
+    },
+    "builders_lockup_period": 24,
+    "builders_vesting_period": 36,
+    "private_sales": [
+        {"tokens_sold": 20000000, "price": 0.10, "vesting_period": 12},
+        {"tokens_sold": 15000000, "price": 0.20, "vesting_period": 6},
+        {"tokens_sold": 15000000, "price": 1.00, "vesting_period": 0}
+    ]
+}
