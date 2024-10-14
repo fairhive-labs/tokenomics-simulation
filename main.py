@@ -1,7 +1,7 @@
 """
 main.py
 
-This is the main script that runs the $POLN tokenomics simulation.
+This script runs the $POLN tokenomics simulation.
 It reads the configuration from 'config.json' and uses the 'simulation.py' module
 to perform the simulation. The results are then plotted and interpreted.
 
@@ -66,10 +66,11 @@ def main():
         plt.xlabel('Month')
         plt.ylabel('Tokens in DAO Treasury')
 
-        # Plot Number of New and Ongoing Missions
+        # Plot Number of Missions
         plt.subplot(5, 1, 4)
-        plt.plot(df['Month'], df['Number of New Missions'], label='New Missions')
-        plt.plot(df['Month'], df['Number of Ongoing Missions'], label='Ongoing Missions')
+        plt.plot(df['Month'], df['New Missions'], label='New Missions')
+        plt.plot(df['Month'], df['Ongoing Missions'], label='Ongoing Missions')
+        plt.plot(df['Month'], df['Ending Missions'], label='Ending Missions')
         plt.title(f'Missions over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Number of Missions')
@@ -77,7 +78,7 @@ def main():
 
         # Plot Market Sentiment Index
         plt.subplot(5, 1, 5)
-        plt.plot(df['Month'], df['Market Sentiment Index'], color='orange')
+        plt.plot(df['Month'], df['Market Sentiment Index'], color='blue')
         plt.title(f'Market Sentiment Index over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('MSI')

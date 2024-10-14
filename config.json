@@ -8,10 +8,16 @@
     "PEC": 0.5,
     "MSI_MIN": 0.9,
     "MSI_MAX": 1.1,
-    "ADOPTION_GROWTH_RATE": 10,
-    "SIMULATION_YEARS": [3, 5, 10],
+    "GROWTH_RATIO": 10,
+    "MAX_MISSIONS": 1000000,
+    "RANDOM_FLUCTUATION": 0.20,
+    "SIMULATION_YEARS": [
+        3,
+        5,
+        10
+    ],
     "MONTHS_PER_YEAR": 12,
-    "initial_new_missions": 100,
+    "initial_missions": 1000,
     "mission_duration": 2,
     "token_distribution": {
         "Public Sales": 0.30,
@@ -25,8 +31,20 @@
     "builders_lockup_period": 24,
     "builders_vesting_period": 36,
     "private_sales": [
-        {"tokens_sold": 20000000, "price": 0.10, "vesting_period": 12},
-        {"tokens_sold": 15000000, "price": 0.20, "vesting_period": 6},
-        {"tokens_sold": 15000000, "price": 1.00, "vesting_period": 0}
+        {
+            "tokens_sold": 20000000,
+            "price": 0.10,
+            "vesting_period": 12
+        },
+        {
+            "tokens_sold": 15000000,
+            "price": 0.20,
+            "vesting_period": 6
+        },
+        {
+            "tokens_sold": 15000000,
+            "price": 1.00,
+            "vesting_period": 0
+        }
     ]
 }

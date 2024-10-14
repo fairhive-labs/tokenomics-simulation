@@ -35,8 +35,10 @@ def simulate(simulation_months, config):
     PEC = config['PEC']
     MSI_MIN = config['MSI_MIN']
     MSI_MAX = config['MSI_MAX']
-    ADOPTION_GROWTH_RATE = config['ADOPTION_GROWTH_RATE']
-    initial_new_missions = config['initial_new_missions']
+    GROWTH_RATIO = config['GROWTH_RATIO']
+    MAX_MISSIONS = config['MAX_MISSIONS']
+    RANDOM_FLUCTUATION = config['RANDOM_FLUCTUATION']
+    initial_missions = config['initial_missions']
     mission_duration = config['mission_duration']
     token_distribution = config['token_distribution']
     builders_lockup_period = config['builders_lockup_period']
@@ -100,11 +102,9 @@ def simulate(simulation_months, config):
     # Testnet development tokens vesting schedule (assuming immediate release)
     circulating_supply += testnet_development_tokens  # Add to circulating supply
 
-    # Initialize mission tracking
-    active_missions = []  # List to store active missions
-
-    # Initialize number of new missions per month
-    new_missions_per_month = initial_new_missions
+    # Initialize mission counts
+    new_missions = initial_missions
+    ongoing_missions_history = []  # List to keep track of new missions each month for duration
 
     # Main simulation loop
     for month in range(1, simulation_months + 1):
@@ -136,30 +136,41 @@ def simulate(simulation_months, config):
         if circulating_supply > total_supply:
             circulating_supply = total_supply
 
-        # Start New Missions
-        new_missions = int(new_missions_per_month)
-        new_missions_per_month *= (1 + ADOPTION_GROWTH_RATE / 100)  # Convert percentage to decimal
-        for _ in range(new_missions):
-            # Create a new mission
-            mission = {
-                'start_month': month,
-                'end_month': month + mission_duration - 1,
-                'success': None  # Will be determined at mission end
-            }
-            active_missions.append(mission)
+        # Adjust number of new missions
+        # Apply growth ratio
+        new_missions *= GROWTH_RATIO
 
-        # Process Ending Missions
-        ending_missions = [m for m in active_missions if m['end_month'] == month]
+        # Apply random fluctuation (±20% or as specified)
+        fluctuation = random.uniform(-RANDOM_FLUCTUATION, RANDOM_FLUCTUATION)
+        new_missions *= (1 + fluctuation)
+
+        # Ensure new_missions is within realistic bounds
+        new_missions = int(min(new_missions, MAX_MISSIONS))
+
+        # Add current new missions to ongoing missions history
+        ongoing_missions_history.append(new_missions)
+
+        # Calculate number of ending missions
+        if len(ongoing_missions_history) > mission_duration:
+            ending_missions = ongoing_missions_history.pop(0)
+        else:
+            ending_missions = 0  # No missions ending yet if mission_duration not reached
+
+        # Calculate number of ongoing missions
+        ongoing_missions = sum(ongoing_missions_history)
+
+        # Initialize monthly metrics
         tokens_staked = 0
         tokens_burnt = 0
         tokens_fee_distributed = 0
         tokens_fee_to_dao = 0
         net_token_demand = 0
 
-        for mission in ending_missions:
-            # Determine mission outcome
-            mission_success = random.random() < MISSION_SUCCESS_RATE
-            mission['success'] = mission_success
+        # Process ending missions
+        if ending_missions > 0:
+            # Determine the number of successful and failed missions
+            num_successful = int(ending_missions * MISSION_SUCCESS_RATE)
+            num_failed = ending_missions - num_successful
 
             # Calculate protocol fee in $POLN
             protocol_fee_usd = PROJECT_COST * PROTOCOL_FEE_RATE
@@ -172,40 +183,27 @@ def simulate(simulation_months, config):
             # Calculate staking amount
             staking_amount = protocol_fee_poln * STAKING_RATE
 
-            if mission_success:
-                # Mission succeeded
-                # Return staked tokens to fellowship
-                # Distribute protocol fee among fellowship members
-                tokens_fee_distributed += protocol_fee_poln
-                # Net token demand includes protocol fee
-                net_token_demand += protocol_fee_poln
-            else:
-                # Mission failed
-                # Burn staked tokens
-                tokens_burnt += staking_amount
-                total_burnt_tokens += staking_amount
-                # Adjust total supply for burnt tokens
-                total_supply -= staking_amount
-                # Protocol fee goes to DAO treasury
-                tokens_fee_to_dao += protocol_fee_poln
-                dao_treasury += protocol_fee_poln
-                # Net token demand includes protocol fee minus burnt tokens
-                net_token_demand += protocol_fee_poln - staking_amount
+            # Aggregate tokenomics calculations
+            tokens_staked = staking_amount * ending_missions
+            tokens_burnt = staking_amount * num_failed
+            total_burnt_tokens += tokens_burnt
+            total_supply -= tokens_burnt
 
-            tokens_staked += staking_amount
+            tokens_fee_distributed = protocol_fee_poln * num_successful
+            tokens_fee_to_dao = protocol_fee_poln * num_failed
+            dao_treasury += tokens_fee_to_dao
 
-            # Remove mission from active missions
-            active_missions.remove(mission)
+            net_token_demand = (protocol_fee_poln * ending_missions) - tokens_burnt
 
-        # Update circulating supply by subtracting burnt tokens
-        circulating_supply -= tokens_burnt
+            # Update circulating supply
+            circulating_supply -= tokens_burnt
 
-        # Ensure circulating supply does not go negative
-        if circulating_supply < 0:
-            circulating_supply = 0
+            # Ensure circulating supply does not go negative
+            if circulating_supply < 0:
+                circulating_supply = 0
 
         # Adjust token price based on net demand (refined model)
-        if circulating_supply > 0:
+        if circulating_supply > 0 and net_token_demand != 0:
             demand_supply_ratio = net_token_demand / circulating_supply
             price_change_percentage = PEC * demand_supply_ratio * MSI
             # Cap price change percentage to prevent extreme fluctuations
@@ -230,8 +228,9 @@ def simulate(simulation_months, config):
             'Total Burnt Tokens': total_burnt_tokens,
             'Market Sentiment Index': MSI,
             'Net Token Demand': net_token_demand,
-            'Number of New Missions': new_missions,
-            'Number of Ongoing Missions': len(active_missions),
+            'New Missions': new_missions,
+            'Ongoing Missions': ongoing_missions,
+            'Ending Missions': ending_missions,
         })
 
     # Convert results to a pandas DataFrame
