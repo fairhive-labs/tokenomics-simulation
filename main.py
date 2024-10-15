@@ -40,11 +40,15 @@ def main():
         print(f"\nSimulating {years} years ({simulation_months} months)...")
         df = simulate(simulation_months, config)
 
-        # Plotting the results
-        plt.figure(figsize=(14, 16))
+        # Save simulation data to CSV
+        df.to_csv(f'simulation_data_{years}years.csv', index=False)
 
-        # Plot Circulating Supply and Total Burnt Tokens
-        plt.subplot(5, 1, 1)
+        # Plotting the results
+        plt.figure(figsize=(16, 12))  # Adjusted figure size for better layout
+
+        # Use a 3x2 grid layout for subplots
+        # Subplot 1: Circulating Supply and Total Burnt Tokens
+        plt.subplot(3, 2, 1)
         plt.plot(df['Month'], df['Circulating Supply'], label='Circulating Supply')
         plt.plot(df['Month'], df['Total Burnt Tokens'], label='Total Burnt Tokens')
         plt.title(f'$POLN Token Supply over {years} Years')
@@ -52,22 +56,22 @@ def main():
         plt.ylabel('Tokens')
         plt.legend()
 
-        # Plot Token Price
-        plt.subplot(5, 1, 2)
+        # Subplot 2: Token Price
+        plt.subplot(3, 2, 2)
         plt.plot(df['Month'], df['Token Price'], color='green')
         plt.title(f'$POLN Token Price over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Token Price in USD')
 
-        # Plot DAO Treasury Balance
-        plt.subplot(5, 1, 3)
+        # Subplot 3: DAO Treasury Balance
+        plt.subplot(3, 2, 3)
         plt.plot(df['Month'], df['DAO Treasury'], color='purple')
         plt.title(f'DAO Treasury Balance over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Tokens in DAO Treasury')
 
-        # Plot Number of Missions
-        plt.subplot(5, 1, 4)
+        # Subplot 4: Number of Missions
+        plt.subplot(3, 2, 4)
         plt.plot(df['Month'], df['New Missions'], label='New Missions')
         plt.plot(df['Month'], df['Ongoing Missions'], label='Ongoing Missions')
         plt.plot(df['Month'], df['Ending Missions'], label='Ending Missions')
@@ -76,15 +80,24 @@ def main():
         plt.ylabel('Number of Missions')
         plt.legend()
 
-        # Plot Market Sentiment Index
-        plt.subplot(5, 1, 5)
+        # Subplot 5: Market Sentiment Index
+        plt.subplot(3, 2, 5)
         plt.plot(df['Month'], df['Market Sentiment Index'], color='blue')
         plt.title(f'Market Sentiment Index over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('MSI')
 
+        # Hide the empty subplot (6th position in 3x2 grid)
+        plt.subplot(3, 2, 6)
+        plt.axis('off')
+
         plt.tight_layout()
-        plt.show()
+
+        # Save the figure to a PNG file
+        plt.savefig(f'simulation-{years}years.png', dpi=300)
+
+        # Clear the current figure to avoid overlap in the next iteration
+        plt.clf()
 
         # Interpretation of Results
         print(f"--- Interpretation after {years} years ---")
