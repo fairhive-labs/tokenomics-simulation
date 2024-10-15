@@ -14,7 +14,6 @@ If no configuration file is specified, 'config.json' is used by default.
 import sys
 import json
 import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
 from simulation import simulate
 

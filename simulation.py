@@ -9,9 +9,8 @@ Functions:
     simulate(simulation_months, config) -> pd.DataFrame
 """
 
-import numpy as np
-import pandas as pd
 import random
+import pandas as pd
 
 def simulate(simulation_months, config):
     """
