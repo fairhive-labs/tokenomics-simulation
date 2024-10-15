@@ -3,7 +3,7 @@ main.py
 
 This script runs the $POLN tokenomics simulation.
 It reads the configuration from 'config.json' and uses the 'simulation.py' module
-to perform the simulation. The results are then plotted and interpreted.
+to perform the simulation. The results are then plotted and saved to PNG files.
 
 Usage:
     python main.py [config_file]
@@ -26,21 +26,21 @@ def main():
     """
     # Use the configuration file specified in the command-line arguments
     config_file_name = sys.argv[1] if len(sys.argv) > 1 else 'config.json'
-    with open(config_file_name, 'r') as config_file:
+    with open(config_file_name, 'r', encoding='utf-8') as config_file:
         config = json.load(config_file)
 
     # Extract simulation periods
-    SIMULATION_YEARS = config['SIMULATION_YEARS']
-    MONTHS_PER_YEAR = config['MONTHS_PER_YEAR']
+    simulation_years = config['simulation_years']
+    months_per_year = config['months_per_year']
 
     # Run simulations for each period
-    for years in SIMULATION_YEARS:
-        simulation_months = years * MONTHS_PER_YEAR
+    for years in simulation_years:
+        simulation_months = years * months_per_year
         print(f"\nSimulating {years} years ({simulation_months} months)...")
         df = simulate(simulation_months, config)
 
         # Save simulation data to CSV
-        df.to_csv(f'simulation_data_{years}years.csv', index=False)
+        df.to_csv(f'simulation_data_{years}years.csv', index=False, encoding='utf-8')
 
         # Plotting the results
         plt.figure(figsize=(16, 12))  # Adjusted figure size for better layout
@@ -71,10 +71,8 @@ def main():
 
         # Subplot 4: Number of Missions
         plt.subplot(3, 2, 4)
-        plt.plot(df['Month'], df['New Missions'], label='New Missions')
-        plt.plot(df['Month'], df['Ongoing Missions'], label='Ongoing Missions')
-        plt.plot(df['Month'], df['Ending Missions'], label='Ending Missions')
-        plt.title(f'Missions over {years} Years')
+        plt.plot(df['Month'], df['Missions'], label='Missions')
+        plt.title(f'Number of Missions over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Number of Missions')
         plt.legend()

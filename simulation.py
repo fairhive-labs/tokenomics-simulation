@@ -10,7 +10,9 @@ Functions:
 """
 
 import random
+import numpy as np
 import pandas as pd
+
 
 def simulate(simulation_months, config):
     """
@@ -25,34 +27,41 @@ def simulate(simulation_months, config):
     """
 
     # Extract parameters from the configuration
-    TOTAL_SUPPLY = config['TOTAL_SUPPLY']
-    INITIAL_PRICE = config['INITIAL_PRICE']
-    PROJECT_COST = config['PROJECT_COST']
-    PROTOCOL_FEE_RATE = config['PROTOCOL_FEE_RATE']
-    STAKING_RATE = config['STAKING_RATE']
-    MISSION_SUCCESS_RATE = config['MISSION_SUCCESS_RATE']
-    PEC = config['PEC']
-    MSI_MIN = config['MSI_MIN']
-    MSI_MAX = config['MSI_MAX']
-    GROWTH_RATIO = config['GROWTH_RATIO']
-    MAX_MISSIONS = config['MAX_MISSIONS']
-    RANDOM_FLUCTUATION = config['RANDOM_FLUCTUATION']
-    initial_missions = config['initial_missions']
-    mission_duration = config['mission_duration']
+    total_supply = config['total_supply']
+    initial_price = config['initial_price']
+    project_cost = config['project_cost']
+    protocol_fee_rate = config['protocol_fee_rate']
+    staking_rate = config['staking_rate']
+    mission_success_rate = config['mission_success_rate']
+    pec = config['pec']
+    msi_bull = config['msi_bull']
+    msi_bear = config['msi_bear']
+    msi_normal = config['msi_normal']
+    bull_market_probability = config['bull_market_probability']
+    bear_market_probability = config['bear_market_probability']
+    market_event_duration = config['market_event_duration']
+    random_fluctuation = config['random_fluctuation']
+    carrying_capacity = config['carrying_capacity']
+    growth_rate = config['growth_rate']
+    inflection_point = config['inflection_point']
+    seasonality = config['seasonality']
     token_distribution = config['token_distribution']
     builders_lockup_period = config['builders_lockup_period']
     builders_vesting_period = config['builders_vesting_period']
     private_sales = config['private_sales']
 
     # Initialize state variables
-    total_supply = TOTAL_SUPPLY
+    total_supply_current = total_supply
 
     # Tokens allocated
-    builders_tokens = TOTAL_SUPPLY * token_distribution['Builders']
-    dao_treasury = TOTAL_SUPPLY * token_distribution['DAO Treasury']
-    airdrops_giveaways_tokens = TOTAL_SUPPLY * token_distribution['Airdrops & Giveaways']
-    initiator_rewards_tokens = TOTAL_SUPPLY * token_distribution['Initiator Rewards']
-    testnet_development_tokens = TOTAL_SUPPLY * token_distribution['Testnet Development & Partners']
+    builders_tokens = total_supply * token_distribution['Builders']
+    dao_treasury = total_supply * token_distribution['DAO Treasury']
+    airdrops_giveaways_tokens = total_supply * \
+        token_distribution['Airdrops & Giveaways']
+    initiator_rewards_tokens = total_supply * \
+        token_distribution['Initiator Rewards']
+    testnet_development_tokens = total_supply * \
+        token_distribution['Testnet Development & Partners']
 
     # Calculate private sale tokens under vesting
     private_sale_vesting_tokens = sum(
@@ -60,7 +69,7 @@ def simulate(simulation_months, config):
     )
 
     # Circulating supply excludes tokens not immediately available
-    circulating_supply = TOTAL_SUPPLY - (
+    circulating_supply = total_supply - (
         builders_tokens +
         dao_treasury +
         airdrops_giveaways_tokens +
@@ -74,7 +83,8 @@ def simulate(simulation_months, config):
     for sale in private_sales:
         vesting_period = sale['vesting_period']
         tokens_sold = sale['tokens_sold']
-        vesting_amount_per_month = tokens_sold / vesting_period if vesting_period > 0 else 0
+        vesting_amount_per_month = tokens_sold / \
+            vesting_period if vesting_period > 0 else 0
         private_sales_vesting_schedules.append({
             'remaining_tokens': tokens_sold,
             'vesting_period': vesting_period,
@@ -86,29 +96,43 @@ def simulate(simulation_months, config):
             circulating_supply += tokens_sold
 
     total_burnt_tokens = 0
-    token_price = INITIAL_PRICE
+    token_price = initial_price
 
     # Data storage for simulation results
     results = []
 
     # Builders' tokens vesting per month after lockup
-    builders_vesting_per_month = builders_tokens / builders_vesting_period if builders_vesting_period > 0 else 0
+    builders_vesting_per_month = builders_tokens / \
+        builders_vesting_period if builders_vesting_period > 0 else 0
 
     # Initiator rewards vesting schedule (assuming similar to builders)
     initiator_vesting_period = builders_vesting_period  # Assuming same vesting period
-    initiator_vesting_per_month = initiator_rewards_tokens / initiator_vesting_period if initiator_vesting_period > 0 else 0
+    initiator_vesting_per_month = initiator_rewards_tokens / \
+        initiator_vesting_period if initiator_vesting_period > 0 else 0
 
     # Testnet development tokens vesting schedule (assuming immediate release)
     circulating_supply += testnet_development_tokens  # Add to circulating supply
 
-    # Initialize mission counts
-    new_missions = initial_missions
-    ongoing_missions_history = []  # List to keep track of new missions each month for duration
+    # Market event tracking
+    market_event_counter = 0  # Tracks duration of current market event
+    current_msi = msi_normal  # Start with normal market sentiment
 
     # Main simulation loop
     for month in range(1, simulation_months + 1):
-        # Market Sentiment Index (fluctuates between MSI_MIN and MSI_MAX)
-        MSI = random.uniform(MSI_MIN, MSI_MAX)
+        # Market Sentiment Index (MSI)
+        if market_event_counter > 0:
+            market_event_counter -= 1  # Continue current market event
+        else:
+            # Decide if a new market event occurs
+            rand_event = random.random()
+            if rand_event < bull_market_probability:
+                current_msi = msi_bull
+                market_event_counter = market_event_duration - 1
+            elif rand_event < bull_market_probability + bear_market_probability:
+                current_msi = msi_bear
+                market_event_counter = market_event_duration - 1
+            else:
+                current_msi = msi_normal
 
         # Vesting for builders after lockup period
         if month > builders_lockup_period and builders_tokens > 0:
@@ -118,7 +142,8 @@ def simulate(simulation_months, config):
 
         # Vesting for initiator rewards (assuming similar lockup and vesting)
         if month > builders_lockup_period and initiator_rewards_tokens > 0:
-            vesting_amount = min(initiator_vesting_per_month, initiator_rewards_tokens)
+            vesting_amount = min(initiator_vesting_per_month,
+                                 initiator_rewards_tokens)
             initiator_rewards_tokens -= vesting_amount
             circulating_supply += vesting_amount
 
@@ -132,31 +157,24 @@ def simulate(simulation_months, config):
                     circulating_supply += vesting_amount
 
         # Ensure circulating supply does not exceed total supply
-        if circulating_supply > total_supply:
-            circulating_supply = total_supply
+        if circulating_supply > total_supply_current:
+            circulating_supply = total_supply_current
 
-        # Adjust number of new missions
-        # Apply growth ratio
-        new_missions *= GROWTH_RATIO
+        # Calculate baseline number of missions using logistic growth
+        exponent = growth_rate * (month - inflection_point)
+        baseline_missions = carrying_capacity / (1 + np.exp(-exponent))
 
-        # Apply random fluctuation (±20% or as specified)
-        fluctuation = random.uniform(-RANDOM_FLUCTUATION, RANDOM_FLUCTUATION)
-        new_missions *= (1 + fluctuation)
+        # Apply seasonal adjustments
+        month_of_year = (month - 1) % 12 + 1  # Month in [1,12]
+        seasonal_factor = seasonality.get(str(month_of_year), 1.0)
+        adjusted_missions = baseline_missions * seasonal_factor
 
-        # Ensure new_missions is within realistic bounds
-        new_missions = int(min(new_missions, MAX_MISSIONS))
+        # Apply random fluctuations
+        fluctuation = random.uniform(-random_fluctuation, random_fluctuation)
+        final_missions = adjusted_missions * (1 + fluctuation)
 
-        # Add current new missions to ongoing missions history
-        ongoing_missions_history.append(new_missions)
-
-        # Calculate number of ending missions
-        if len(ongoing_missions_history) > mission_duration:
-            ending_missions = ongoing_missions_history.pop(0)
-        else:
-            ending_missions = 0  # No missions ending yet if mission_duration not reached
-
-        # Calculate number of ongoing missions
-        ongoing_missions = sum(ongoing_missions_history)
+        # Convert final_missions to integer
+        num_missions = int(final_missions)
 
         # Initialize monthly metrics
         tokens_staked = 0
@@ -165,14 +183,14 @@ def simulate(simulation_months, config):
         tokens_fee_to_dao = 0
         net_token_demand = 0
 
-        # Process ending missions
-        if ending_missions > 0:
+        # Process missions in aggregate
+        if num_missions > 0:
             # Determine the number of successful and failed missions
-            num_successful = int(ending_missions * MISSION_SUCCESS_RATE)
-            num_failed = ending_missions - num_successful
+            num_successful = int(num_missions * mission_success_rate)
+            num_failed = num_missions - num_successful
 
             # Calculate protocol fee in $POLN
-            protocol_fee_usd = PROJECT_COST * PROTOCOL_FEE_RATE
+            protocol_fee_usd = project_cost * protocol_fee_rate
             protocol_fee_poln = protocol_fee_usd / token_price
 
             # Ensure protocol_fee_poln doesn't become too small
@@ -180,19 +198,20 @@ def simulate(simulation_months, config):
                 protocol_fee_poln = 1e-6
 
             # Calculate staking amount
-            staking_amount = protocol_fee_poln * STAKING_RATE
+            staking_amount = protocol_fee_poln * staking_rate
 
             # Aggregate tokenomics calculations
-            tokens_staked = staking_amount * ending_missions
+            tokens_staked = staking_amount * num_missions
             tokens_burnt = staking_amount * num_failed
             total_burnt_tokens += tokens_burnt
-            total_supply -= tokens_burnt
+            total_supply_current -= tokens_burnt
 
             tokens_fee_distributed = protocol_fee_poln * num_successful
             tokens_fee_to_dao = protocol_fee_poln * num_failed
             dao_treasury += tokens_fee_to_dao
 
-            net_token_demand = (protocol_fee_poln * ending_missions) - tokens_burnt
+            net_token_demand = (protocol_fee_poln *
+                                num_missions) - tokens_burnt
 
             # Update circulating supply
             circulating_supply -= tokens_burnt
@@ -201,12 +220,13 @@ def simulate(simulation_months, config):
             if circulating_supply < 0:
                 circulating_supply = 0
 
-        # Adjust token price based on net demand (refined model)
+        # Adjust token price based on net demand and market sentiment
         if circulating_supply > 0 and net_token_demand != 0:
             demand_supply_ratio = net_token_demand / circulating_supply
-            price_change_percentage = PEC * demand_supply_ratio * MSI
+            price_change_percentage = pec * demand_supply_ratio * current_msi
             # Cap price change percentage to prevent extreme fluctuations
-            price_change_percentage = max(min(price_change_percentage, 0.1), -0.1)
+            price_change_percentage = max(
+                min(price_change_percentage, 0.2), -0.2)
             token_price *= (1 + price_change_percentage)
         else:
             # Avoid division by zero
@@ -217,7 +237,7 @@ def simulate(simulation_months, config):
         results.append({
             'Month': month,
             'Circulating Supply': circulating_supply,
-            'Total Supply': total_supply,
+            'Total Supply': total_supply_current,
             'Token Price': token_price,
             'Tokens Staked': tokens_staked,
             'Tokens Burnt': tokens_burnt,
@@ -225,11 +245,9 @@ def simulate(simulation_months, config):
             'Tokens Fee to DAO': tokens_fee_to_dao,
             'DAO Treasury': dao_treasury,
             'Total Burnt Tokens': total_burnt_tokens,
-            'Market Sentiment Index': MSI,
+            'Market Sentiment Index': current_msi,
             'Net Token Demand': net_token_demand,
-            'New Missions': new_missions,
-            'Ongoing Missions': ongoing_missions,
-            'Ending Missions': ending_missions,
+            'Missions': num_missions,
         })
 
     # Convert results to a pandas DataFrame
