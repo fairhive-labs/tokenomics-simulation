@@ -46,16 +46,16 @@ def simulate(simulation_months, config):
     inflection_point = config['inflection_point']
     seasonality = config['seasonality']
     token_distribution = config['token_distribution']
-    builders_lockup_period = config['builders_lockup_period']
-    builders_vesting_period = config['builders_vesting_period']
-    testnet_distribution_period = config['testnet_distribution_period']
     initiator_selling_percentage = config['initiator_selling_percentage']
     dao_annual_consumption_rate = config['dao_annual_consumption_rate']
     dao_consumption_start_month = config['dao_consumption_start_month']
     fellowship_selling_percentage = config['fellowship_selling_percentage']
     private_sales = config['private_sales']
-    initial_reward_per_mission = config['initiator_rewards_initial']
+    initial_rewards = config['initiator_rewards_initial']
     minimum_reward_per_mission = config['minimum_reward_per_mission']
+    testnet_distribution_period = config['testnet_distribution_period']
+    builders_lockup_period = config['builders_lockup_period']
+    builders_vesting_period = config['builders_vesting_period']
 
     # Initialize state variables
     total_supply_current = total_supply
@@ -68,8 +68,9 @@ def simulate(simulation_months, config):
     # Initiator rewards pool calculated from token distribution
     initiator_rewards_pool = total_supply * \
         token_distribution['Initiator Rewards']
-    testnet_development_tokens = total_supply * \
-        token_distribution['Testnet Development & Partners']
+    testnet_development_tokens = (
+        total_supply * token_distribution['Testnet Development & Partners']
+    )
 
     # Calculate private sale tokens under vesting
     private_sale_vesting_tokens = sum(
@@ -82,7 +83,6 @@ def simulate(simulation_months, config):
         dao_treasury +
         airdrops_giveaways_tokens +
         private_sale_vesting_tokens +
-        # Initiator rewards pool (not in circulation)
         initiator_rewards_pool +
         testnet_development_tokens
     )
@@ -118,21 +118,21 @@ def simulate(simulation_months, config):
     builders_vesting_per_month = builders_tokens / \
         builders_vesting_period if builders_vesting_period > 0 else 0
 
-    # Testnet tokens distribution per month
-    testnet_vesting_per_month = testnet_development_tokens / \
-        (testnet_distribution_period * 12)
-
     # DAO consumption tracking
     dao_consumption_monthly_rate = dao_annual_consumption_rate / \
         12  # Convert annual rate to monthly
 
     # Initiator rewards
-    reward_per_mission = initial_reward_per_mission
-
+    # Start with monthly reward
+    reward_per_mission = initial_rewards['monthly']
+    initial_initiator_rewards_pool = initiator_rewards_pool
     current_halving_index = 0
 
-    # Initial Initiator Rewards Pool
-    initial_initiator_rewards_pool = initiator_rewards_pool
+    # Compute the maximum number of halvings
+    max_halvings = int(
+        np.floor(np.log2(initial_initiator_rewards_pool /
+                 minimum_reward_per_mission))
+    )
 
     # Market event tracking
     market_event_counter = 0  # Tracks duration of current market event
@@ -156,15 +156,15 @@ def simulate(simulation_months, config):
                 current_msi = msi_normal
 
         # Vesting for builders after lockup period
+        fellowship_sold = 0  # Initialize in case there is no vesting this month
         if month > builders_lockup_period and builders_tokens > 0:
             vesting_amount = min(builders_vesting_per_month, builders_tokens)
             builders_tokens -= vesting_amount
             circulating_supply += vesting_amount
 
             # Builders' tokens are now in circulation
-            # Fellowship members sell a percentage of their tokens
+            # Builders (considered fellowship members) sell a percentage of their tokens
             fellowship_sold = vesting_amount * fellowship_selling_percentage
-            # Subtract sold tokens from net token demand (will be calculated later)
 
         # Vesting for private sales
         for schedule in private_sales_vesting_schedules:
@@ -178,6 +178,9 @@ def simulate(simulation_months, config):
 
         # Distribute testnet tokens
         if testnet_development_tokens > 0:
+            testnet_vesting_per_month = testnet_development_tokens / (
+                testnet_distribution_period * 12
+            )
             vesting_amount = min(testnet_vesting_per_month,
                                  testnet_development_tokens)
             testnet_development_tokens -= vesting_amount
@@ -218,7 +221,6 @@ def simulate(simulation_months, config):
         tokens_fee_to_dao = 0
         net_token_demand = 0
         initiator_sold = 0
-        fellowship_sold = 0
 
         # Process missions in aggregate
         if num_missions > 0:
@@ -256,20 +258,22 @@ def simulate(simulation_months, config):
 
             # Fellowship members receive tokens (from staking rewards)
             fellowship_tokens = tokens_fee_distributed
-            fellowship_sold = fellowship_tokens * fellowship_selling_percentage
+            fellowship_sold += fellowship_tokens * fellowship_selling_percentage
 
-            # Initiator receives rewards based on dynamic halving mechanism
+            # Add fellowship tokens to circulating supply (no lockup or vesting)
+            circulating_supply += fellowship_tokens
+
+            # Initiator receives rewards
             initiator_rewards_this_month = reward_per_mission * num_successful
 
             # Reduce the initiator rewards pool
             initiator_rewards_pool -= initiator_rewards_this_month
             if initiator_rewards_pool < 0:
                 # Adjust rewards if pool is depleted
-                # initiator_rewards_pool is negative
-                initiator_rewards_this_month += initiator_rewards_pool
+                initiator_rewards_this_month += initiator_rewards_pool  # Negative value adjustment
                 initiator_rewards_pool = 0
 
-            # Add initiator rewards to circulating supply
+            # Add initiator rewards to circulating supply (no lockup or vesting)
             circulating_supply += initiator_rewards_this_month
 
             # Initiator sells a percentage of rewards
@@ -286,7 +290,11 @@ def simulate(simulation_months, config):
             # Check for halving
             halving_threshold = initial_initiator_rewards_pool / \
                 (2 ** (current_halving_index + 1))
-            if initiator_rewards_pool <= halving_threshold and reward_per_mission > minimum_reward_per_mission:
+            if (
+                current_halving_index < max_halvings and
+                initiator_rewards_pool <= halving_threshold and
+                reward_per_mission > minimum_reward_per_mission
+            ):
                 # Halving occurs
                 reward_per_mission /= 2
                 current_halving_index += 1

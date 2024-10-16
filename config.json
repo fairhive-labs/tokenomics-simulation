@@ -69,6 +69,12 @@
             "vesting_period": 0
         }
     ],
-    "initiator_rewards_initial": 8.0,
+    "initiator_rewards_initial": {
+        "daily": 8.00,
+        "weekly": 64.00,
+        "monthly": 512.00,
+        "quarterly": 4096.00,
+        "half_yearly": 32768.00
+    },
     "minimum_reward_per_mission": 1e-18
 }
