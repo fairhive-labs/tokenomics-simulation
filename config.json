@@ -47,6 +47,10 @@
     },
     "builders_lockup_period": 24,
     "builders_vesting_period": 36,
+    "testnet_distribution_period": 5,
+    "initiator_selling_percentage": 0.20,
+    "dao_consumption_rate": 0.30,
+    "fellowship_selling_percentage": 0.20,
     "private_sales": [
         {
             "tokens_sold": 20000000,

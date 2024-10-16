@@ -48,6 +48,10 @@ def simulate(simulation_months, config):
     token_distribution = config['token_distribution']
     builders_lockup_period = config['builders_lockup_period']
     builders_vesting_period = config['builders_vesting_period']
+    testnet_distribution_period = config['testnet_distribution_period']
+    initiator_selling_percentage = config['initiator_selling_percentage']
+    dao_consumption_rate = config['dao_consumption_rate']
+    fellowship_selling_percentage = config['fellowship_selling_percentage']
     private_sales = config['private_sales']
 
     # Initialize state variables
@@ -74,9 +78,12 @@ def simulate(simulation_months, config):
         dao_treasury +
         airdrops_giveaways_tokens +
         private_sale_vesting_tokens +
-        initiator_rewards_tokens +
+        # initiator_rewards_tokens +  # Removed vesting for initiators
         testnet_development_tokens
     )
+
+    # Initiator rewards are immediately added to circulating supply
+    circulating_supply += initiator_rewards_tokens
 
     # Initialize private sales vesting schedules
     private_sales_vesting_schedules = []
@@ -105,13 +112,9 @@ def simulate(simulation_months, config):
     builders_vesting_per_month = builders_tokens / \
         builders_vesting_period if builders_vesting_period > 0 else 0
 
-    # Initiator rewards vesting schedule (assuming similar to builders)
-    initiator_vesting_period = builders_vesting_period  # Assuming same vesting period
-    initiator_vesting_per_month = initiator_rewards_tokens / \
-        initiator_vesting_period if initiator_vesting_period > 0 else 0
-
-    # Testnet development tokens vesting schedule (assuming immediate release)
-    circulating_supply += testnet_development_tokens  # Add to circulating supply
+    # Testnet tokens distribution per month
+    testnet_vesting_per_month = testnet_development_tokens / \
+        (testnet_distribution_period * 12)
 
     # Market event tracking
     market_event_counter = 0  # Tracks duration of current market event
@@ -140,12 +143,11 @@ def simulate(simulation_months, config):
             builders_tokens -= vesting_amount
             circulating_supply += vesting_amount
 
-        # Vesting for initiator rewards (assuming similar lockup and vesting)
-        if month > builders_lockup_period and initiator_rewards_tokens > 0:
-            vesting_amount = min(initiator_vesting_per_month,
-                                 initiator_rewards_tokens)
-            initiator_rewards_tokens -= vesting_amount
-            circulating_supply += vesting_amount
+            # Fellowship members sell a percentage of their tokens
+            fellowship_sold = vesting_amount * fellowship_selling_percentage
+            circulating_supply += fellowship_sold  # Tokens enter circulation
+            # Tokens sold may impact price,
+            # but for simplicity, we'll assume they are absorbed by the market
 
         # Vesting for private sales
         for schedule in private_sales_vesting_schedules:
@@ -155,6 +157,18 @@ def simulate(simulation_months, config):
                     vesting_amount = schedule['vesting_amount_per_month']
                     schedule['remaining_tokens'] -= vesting_amount
                     circulating_supply += vesting_amount
+
+        # Distribute testnet tokens
+        if testnet_development_tokens > 0:
+            vesting_amount = min(testnet_vesting_per_month,
+                                 testnet_development_tokens)
+            testnet_development_tokens -= vesting_amount
+            circulating_supply += vesting_amount
+
+        # DAO consumes a percentage of its tokens for operations
+        dao_consumed = dao_treasury * dao_consumption_rate
+        dao_treasury -= dao_consumed
+        circulating_supply += dao_consumed  # Tokens enter circulation
 
         # Ensure circulating supply does not exceed total supply
         if circulating_supply > total_supply_current:
@@ -219,6 +233,19 @@ def simulate(simulation_months, config):
             # Ensure circulating supply does not go negative
             if circulating_supply < 0:
                 circulating_supply = 0
+
+            # Initiator receives rewards (immediately)
+            initiator_rewards = initiator_rewards_tokens / simulation_months
+            circulating_supply += initiator_rewards
+
+            # Initiator sells a percentage of rewards
+            initiator_sold = initiator_rewards * initiator_selling_percentage
+            circulating_supply += initiator_sold  # Tokens enter circulation
+
+            # Fellowship members receive tokens (from staking rewards)
+            fellowship_tokens = tokens_fee_distributed
+            fellowship_sold = fellowship_tokens * fellowship_selling_percentage
+            circulating_supply += fellowship_sold  # Tokens enter circulation
 
         # Adjust token price based on net demand and market sentiment
         if circulating_supply > 0 and net_token_demand != 0:
