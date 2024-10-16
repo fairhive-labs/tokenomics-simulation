@@ -69,15 +69,6 @@
             "vesting_period": 0
         }
     ],
-    "initiator_rewards_halving": {
-        "initial_pool": 40000000,
-        "initial_reward": 8.0,
-        "halving_thresholds": [
-            20000000,
-            10000000,
-            5000000,
-            2500000,
-            1250000
-        ]
-    }
+    "initiator_rewards_initial": 8.0,
+    "minimum_reward_per_mission": 1e-18
 }

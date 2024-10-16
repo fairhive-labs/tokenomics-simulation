@@ -54,7 +54,7 @@ def simulate(simulation_months, config):
     dao_consumption_start_month = config['dao_consumption_start_month']
     fellowship_selling_percentage = config['fellowship_selling_percentage']
     private_sales = config['private_sales']
-    initial_reward_per_mission = config['initial_reward_per_mission']
+    initial_reward_per_mission = config['initiator_rewards_initial']
     minimum_reward_per_mission = config['minimum_reward_per_mission']
 
     # Initialize state variables
@@ -128,8 +128,11 @@ def simulate(simulation_months, config):
 
     # Initiator rewards
     reward_per_mission = initial_reward_per_mission
-    minimum_reward = minimum_reward_per_mission
-    current_halving_index = 0  # Tracks the number of times rewards have been halved
+
+    current_halving_index = 0
+
+    # Initial Initiator Rewards Pool
+    initial_initiator_rewards_pool = initiator_rewards_pool
 
     # Market event tracking
     market_event_counter = 0  # Tracks duration of current market event
@@ -161,7 +164,7 @@ def simulate(simulation_months, config):
             # Builders' tokens are now in circulation
             # Fellowship members sell a percentage of their tokens
             fellowship_sold = vesting_amount * fellowship_selling_percentage
-            # The sold tokens are already in circulation
+            # Subtract sold tokens from net token demand (will be calculated later)
 
         # Vesting for private sales
         for schedule in private_sales_vesting_schedules:
@@ -214,6 +217,8 @@ def simulate(simulation_months, config):
         tokens_fee_distributed = 0
         tokens_fee_to_dao = 0
         net_token_demand = 0
+        initiator_sold = 0
+        fellowship_sold = 0
 
         # Process missions in aggregate
         if num_missions > 0:
@@ -249,19 +254,11 @@ def simulate(simulation_months, config):
             tokens_fee_to_dao = protocol_fee_poln * num_failed
             dao_treasury += tokens_fee_to_dao
 
-            net_token_demand = (protocol_fee_poln *
-                                num_missions) - tokens_burnt
-
-            # Ensure circulating supply does not go negative
-            if circulating_supply < 0:
-                circulating_supply = 0
-
             # Fellowship members receive tokens (from staking rewards)
             fellowship_tokens = tokens_fee_distributed
             fellowship_sold = fellowship_tokens * fellowship_selling_percentage
-            # The sold tokens are already in circulation
 
-            # Initiator receives rewards based on halving mechanism
+            # Initiator receives rewards based on dynamic halving mechanism
             initiator_rewards_this_month = reward_per_mission * num_successful
 
             # Reduce the initiator rewards pool
@@ -277,20 +274,25 @@ def simulate(simulation_months, config):
 
             # Initiator sells a percentage of rewards
             initiator_sold = initiator_rewards_this_month * initiator_selling_percentage
-            # The sold tokens are already in circulation
+
+            # Calculate net token demand
+            net_token_demand = (
+                (protocol_fee_poln * num_missions)
+                - tokens_burnt
+                - initiator_sold
+                - fellowship_sold
+            )
 
             # Check for halving
-            initial_initiator_pool = total_supply * \
-                token_distribution['Initiator Rewards']
-            halving_threshold = initial_initiator_pool / \
+            halving_threshold = initial_initiator_rewards_pool / \
                 (2 ** (current_halving_index + 1))
-            if initiator_rewards_pool <= halving_threshold and reward_per_mission > minimum_reward:
+            if initiator_rewards_pool <= halving_threshold and reward_per_mission > minimum_reward_per_mission:
                 # Halving occurs
                 reward_per_mission /= 2
                 current_halving_index += 1
-                # Ensure reward_per_mission does not go below minimum_reward
-                if reward_per_mission < minimum_reward:
-                    reward_per_mission = minimum_reward
+                # Ensure reward_per_mission does not go below minimum_reward_per_mission
+                if reward_per_mission < minimum_reward_per_mission:
+                    reward_per_mission = minimum_reward_per_mission
 
         # Adjust token price based on net demand and market sentiment
         if circulating_supply > 0 and net_token_demand != 0:
@@ -322,6 +324,7 @@ def simulate(simulation_months, config):
             'Missions': num_missions,
             'Initiator Rewards Pool': initiator_rewards_pool,
             'Reward per Mission': reward_per_mission,
+            'Halving Index': current_halving_index,
         })
 
     # Convert results to a pandas DataFrame
