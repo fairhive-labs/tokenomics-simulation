@@ -50,6 +50,8 @@ def simulate(simulation_months, config):
     dao_annual_consumption_rate = config['dao_annual_consumption_rate']
     dao_consumption_start_month = config['dao_consumption_start_month']
     fellowship_selling_percentage = config['fellowship_selling_percentage']
+    # Extracted
+    builders_selling_percentage = config['builders_selling_percentage']
     private_sales = config['private_sales']
     initial_rewards = config['initiator_rewards_initial']
     minimum_reward_per_mission = config['minimum_reward_per_mission']
@@ -156,15 +158,16 @@ def simulate(simulation_months, config):
                 current_msi = msi_normal
 
         # Vesting for builders after lockup period
-        fellowship_sold = 0  # Initialize in case there is no vesting this month
         if month > builders_lockup_period and builders_tokens > 0:
             vesting_amount = min(builders_vesting_per_month, builders_tokens)
             builders_tokens -= vesting_amount
             circulating_supply += vesting_amount
 
             # Builders' tokens are now in circulation
-            # Builders (considered fellowship members) sell a percentage of their tokens
-            fellowship_sold = vesting_amount * fellowship_selling_percentage
+            # Builders sell a percentage of their tokens
+            builders_sold = vesting_amount * builders_selling_percentage
+        else:
+            builders_sold = 0
 
         # Vesting for private sales
         for schedule in private_sales_vesting_schedules:
@@ -221,6 +224,7 @@ def simulate(simulation_months, config):
         tokens_fee_to_dao = 0
         net_token_demand = 0
         initiator_sold = 0
+        fellowship_sold = 0
 
         # Process missions in aggregate
         if num_missions > 0:
@@ -258,7 +262,7 @@ def simulate(simulation_months, config):
 
             # Fellowship members receive tokens (from staking rewards)
             fellowship_tokens = tokens_fee_distributed
-            fellowship_sold += fellowship_tokens * fellowship_selling_percentage
+            fellowship_sold = fellowship_tokens * fellowship_selling_percentage
 
             # Add fellowship tokens to circulating supply (no lockup or vesting)
             circulating_supply += fellowship_tokens
@@ -285,6 +289,7 @@ def simulate(simulation_months, config):
                 - tokens_burnt
                 - initiator_sold
                 - fellowship_sold
+                - builders_sold  # Include builders sold tokens
             )
 
             # Check for halving
@@ -333,6 +338,8 @@ def simulate(simulation_months, config):
             'Initiator Rewards Pool': initiator_rewards_pool,
             'Reward per Mission': reward_per_mission,
             'Halving Index': current_halving_index,
+            'Builders Sold': builders_sold,
+            'Fellowship Sold': fellowship_sold,
         })
 
     # Convert results to a pandas DataFrame

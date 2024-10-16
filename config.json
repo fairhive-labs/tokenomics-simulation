@@ -47,6 +47,7 @@
     },
     "builders_lockup_period": 24,
     "builders_vesting_period": 36,
+    "builders_selling_percentage": 0.10,
     "testnet_distribution_period": 5,
     "initiator_selling_percentage": 0.20,
     "dao_annual_consumption_rate": 0.20,
