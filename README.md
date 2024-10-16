@@ -15,7 +15,6 @@ We appreciate your understanding and patience as we enhance its functionality an
 - [Usage](#usage)
 - [Simulation Parameters](#simulation-parameters)
 - [Adjustable Parameters](#adjustable-parameters)
-- [Understanding the Parameters](#understanding-the-parameters)
 - [Analyzing Results](#analyzing-results)
 - [Contributing](#contributing)
 - [License](#license)
@@ -80,8 +79,7 @@ python main.py
 
 ### View Results
 
-The simulation outputs CSV files and plots in the `results` directory.  
-Analyze the results to understand the tokenomics over time.
+The simulation outputs CSV files and plots in the `results` directory. Analyze the results to understand the tokenomics over time.
 
 ## Simulation Parameters
 
@@ -92,12 +90,12 @@ The simulation is controlled by parameters defined in the `config.json` file. Ad
 Below is a list of key parameters you can adjust:
 
 - **Total Supply (`total_supply`)**: The total number of tokens in existence.
-- **Initial Token Price (`initial_price`)**: The starting price of the token.
+- **Initial Token Price (`initial_price`)**: The starting price of the token in USD.
 - **Project Cost (`project_cost`)**: The average cost of a project or mission in USD.
 - **Protocol Fee Rate (`protocol_fee_rate`)**: The percentage fee charged by the protocol per mission.
 - **Staking Rate (`staking_rate`)**: The proportion of the protocol fee that must be staked in $POLN.
 - **Mission Success Rate (`mission_success_rate`)**: The probability of a mission being successful.
-- **Price Elasticity Coefficient (`pec`)**: Determines the sensitivity of token price to net demand changes.
+- **Price Elasticity Coefficient (`pec`)**: Determines how sensitive the token price is to changes in net token demand relative to the circulating supply.
 
 ### Market Sentiment Indices
 
@@ -110,44 +108,70 @@ Below is a list of key parameters you can adjust:
 - **Bull Market Probability (`bull_market_probability`)**
 - **Bear Market Probability (`bear_market_probability`)**
 - **Market Event Duration (`market_event_duration`)**: Duration of market events in months.
+- **Random Fluctuation (`random_fluctuation`)**: The magnitude of random fluctuations applied to the number of missions.
 
 ### Mission Growth Parameters
 
-- **Carrying Capacity (`carrying_capacity`)**
-- **Growth Rate (`growth_rate`)**
-- **Inflection Point (`inflection_point`)**
-- **Seasonality (`seasonality`)**
+- **Carrying Capacity (`carrying_capacity`)**: Maximum number of missions achievable in the growth model.
+- **Growth Rate (`growth_rate`)**: Controls the speed at which mission numbers grow over time.
+- **Inflection Point (`inflection_point`)**: The month when mission growth shifts from accelerating to decelerating.
+- **Seasonality (`seasonality`)**: Adjustments based on the month.
 
-### Vesting and Lockup Periods
+### Simulation Duration Parameters
+
+- **Simulation Years (`simulation_years`)**: The durations in years for running the simulation.
+- **Months per Year (`months_per_year`)**: The number of months in a year, typically 12.
+
+### Token Distribution Parameters
+
+- **Token Distribution (`token_distribution`)**: Allocation of total supply among groups.
+
+### Builders' Lockup and Vesting
 
 - **Builders' Lockup Period (`builders_lockup_period`)**
 - **Builders' Vesting Period (`builders_vesting_period`)**
+- **Builders' Selling Percentage (`builders_selling_percentage`)**: Fraction of vested tokens sold monthly.
 - **Testnet Distribution Period (`testnet_distribution_period`)**
+- **Initiator Selling Percentage (`initiator_selling_percentage`)**
 
-## Understanding the Parameters
+### DAO Parameters
 
-### Total Supply and Token Distribution
+- **DAO Annual Consumption Rate (`dao_annual_consumption_rate`)**
+- **DAO Consumption Start Month (`dao_consumption_start_month`)**: When DAO starts consuming its treasury.
+- **Fellowship Selling Percentage (`fellowship_selling_percentage`)**
 
-- **Total Supply**: The maximum number of tokens that will ever exist.
-- **Token Distribution**: Allocation of total supply among different stakeholders.
+### Private Sales
 
-### Market Sentiment Indices and Probabilities
+Private sales details, including tokens sold, price, and vesting period.
+Example:
 
-- **Market Sentiment Indices**: Adjust the price change based on market condition.
-- **Price Elasticity Coefficient (`pec`)**: A higher pec value makes the token price more sensitive to changes in net demand.
+```json
+[
+    {"tokens_sold": 20000000, "price": 0.10, "vesting_period": 12},
+    {"tokens_sold": 15000000, "price": 0.20, "vesting_period": 6},
+    {"tokens_sold": 15000000, "price": 1.00, "vesting_period": 0}
+]
+```
 
-### Selling Percentages
+### Initiator Rewards
 
-- **Initiator Selling Percentage**: The fraction of rewards that initiators sell each month.
+- **Initial Rewards per Mission**: The initial rewards given for missions.
+Example:
+
+```json
+{"daily": 8.00, "weekly": 64.00, "monthly": 512.00, "quarterly": 4096.00, "half_yearly": 32768.00}
+```
+
+- **Minimum Reward per Mission (`minimum_reward_per_mission`)**: Prevents rewards from becoming negligibly small.
 
 ## Analyzing Results
 
 After running the simulation:
 
-- **CSV Outputs**: Located in the `results` directory, containing detailed monthly data.
-- **Plots**: Graphical representations of key metrics over time.
+- **CSV Outputs**: Found in the `results` directory, containing detailed monthly data.
+- **Plots**: Visual representations of key metrics over time.
 
-Key Metrics to Observe:
+Key Metrics:
 
 - Token Price
 - Circulating Supply
@@ -156,6 +180,9 @@ Key Metrics to Observe:
 - Tokens Burnt
 - Missions Conducted
 - Initiator Rewards Pool
+- DAO Treasury
+- Tokens Staked
+- Tokens Fee Distributed
 
 ## Contributing
 
