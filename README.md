@@ -1,7 +1,7 @@
 
 # PoLN Tokenomics Simulation
 
-This repository contains a simulation tool for modeling the tokenomics of the PoLN (Proof of Learning Network) protocol. The simulation helps visualize and understand how different parameters affect the token economy over time.
+This repository contains a simulation tool for modeling the tokenomics of the PoLN protocol. The simulation helps visualize and understand how different parameters affect the token economy over time.
 
 ## Disclaimer
 
@@ -58,7 +58,7 @@ pip install numpy pandas matplotlib
 ### Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/tokenomics-simulation.git
+git clone https://github.com/fairhive-labs/tokenomics-simulation.git
 ```
 
 ### Navigate to the Directory
@@ -188,6 +188,4 @@ This project is licensed under the MIT License. See the LICENSE file for details
 
 ## Contact
 
-If you have any questions or need assistance, please open an issue in the repository or contact us at <your-email@example.com>.
-
-> **Note**: Replace placeholders like `yourusername`, `your-feature-name`, and `your-email@example.com` with your actual details.
+If you have any questions or need assistance, please open an issue in the repository or contact us at <contact@poln.org>.
