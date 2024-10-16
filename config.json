@@ -49,7 +49,8 @@
     "builders_vesting_period": 36,
     "testnet_distribution_period": 5,
     "initiator_selling_percentage": 0.20,
-    "dao_consumption_rate": 0.30,
+    "dao_annual_consumption_rate": 0.20,
+    "dao_consumption_start_month": 13,
     "fellowship_selling_percentage": 0.20,
     "private_sales": [
         {
@@ -67,5 +68,16 @@
             "price": 1.00,
             "vesting_period": 0
         }
-    ]
+    ],
+    "initiator_rewards_halving": {
+        "initial_pool": 40000000,
+        "initial_reward": 8.0,
+        "halving_thresholds": [
+            20000000,
+            10000000,
+            5000000,
+            2500000,
+            1250000
+        ]
+    }
 }

@@ -33,7 +33,7 @@ def simulate(simulation_months, config):
     protocol_fee_rate = config['protocol_fee_rate']
     staking_rate = config['staking_rate']
     mission_success_rate = config['mission_success_rate']
-    pec = config['pec']
+    pec = config['pec']  # Price Elasticity Coefficient
     msi_bull = config['msi_bull']
     msi_bear = config['msi_bear']
     msi_normal = config['msi_normal']
@@ -50,9 +50,12 @@ def simulate(simulation_months, config):
     builders_vesting_period = config['builders_vesting_period']
     testnet_distribution_period = config['testnet_distribution_period']
     initiator_selling_percentage = config['initiator_selling_percentage']
-    dao_consumption_rate = config['dao_consumption_rate']
+    dao_annual_consumption_rate = config['dao_annual_consumption_rate']
+    dao_consumption_start_month = config['dao_consumption_start_month']
     fellowship_selling_percentage = config['fellowship_selling_percentage']
     private_sales = config['private_sales']
+    initial_reward_per_mission = config['initial_reward_per_mission']
+    minimum_reward_per_mission = config['minimum_reward_per_mission']
 
     # Initialize state variables
     total_supply_current = total_supply
@@ -62,7 +65,8 @@ def simulate(simulation_months, config):
     dao_treasury = total_supply * token_distribution['DAO Treasury']
     airdrops_giveaways_tokens = total_supply * \
         token_distribution['Airdrops & Giveaways']
-    initiator_rewards_tokens = total_supply * \
+    # Initiator rewards pool calculated from token distribution
+    initiator_rewards_pool = total_supply * \
         token_distribution['Initiator Rewards']
     testnet_development_tokens = total_supply * \
         token_distribution['Testnet Development & Partners']
@@ -78,12 +82,10 @@ def simulate(simulation_months, config):
         dao_treasury +
         airdrops_giveaways_tokens +
         private_sale_vesting_tokens +
-        # initiator_rewards_tokens +  # Removed vesting for initiators
+        # Initiator rewards pool (not in circulation)
+        initiator_rewards_pool +
         testnet_development_tokens
     )
-
-    # Initiator rewards are immediately added to circulating supply
-    circulating_supply += initiator_rewards_tokens
 
     # Initialize private sales vesting schedules
     private_sales_vesting_schedules = []
@@ -102,6 +104,10 @@ def simulate(simulation_months, config):
             # Tokens with no vesting are added to circulating supply immediately
             circulating_supply += tokens_sold
 
+    # Adjust total supply for tokens already added to circulating supply
+    total_supply_current -= (airdrops_giveaways_tokens +
+                             private_sales[2]['tokens_sold'])
+
     total_burnt_tokens = 0
     token_price = initial_price
 
@@ -115,6 +121,15 @@ def simulate(simulation_months, config):
     # Testnet tokens distribution per month
     testnet_vesting_per_month = testnet_development_tokens / \
         (testnet_distribution_period * 12)
+
+    # DAO consumption tracking
+    dao_consumption_monthly_rate = dao_annual_consumption_rate / \
+        12  # Convert annual rate to monthly
+
+    # Initiator rewards
+    reward_per_mission = initial_reward_per_mission
+    minimum_reward = minimum_reward_per_mission
+    current_halving_index = 0  # Tracks the number of times rewards have been halved
 
     # Market event tracking
     market_event_counter = 0  # Tracks duration of current market event
@@ -143,11 +158,10 @@ def simulate(simulation_months, config):
             builders_tokens -= vesting_amount
             circulating_supply += vesting_amount
 
+            # Builders' tokens are now in circulation
             # Fellowship members sell a percentage of their tokens
             fellowship_sold = vesting_amount * fellowship_selling_percentage
-            circulating_supply += fellowship_sold  # Tokens enter circulation
-            # Tokens sold may impact price,
-            # but for simplicity, we'll assume they are absorbed by the market
+            # The sold tokens are already in circulation
 
         # Vesting for private sales
         for schedule in private_sales_vesting_schedules:
@@ -157,6 +171,7 @@ def simulate(simulation_months, config):
                     vesting_amount = schedule['vesting_amount_per_month']
                     schedule['remaining_tokens'] -= vesting_amount
                     circulating_supply += vesting_amount
+                    # Tokens are now in circulation
 
         # Distribute testnet tokens
         if testnet_development_tokens > 0:
@@ -164,11 +179,14 @@ def simulate(simulation_months, config):
                                  testnet_development_tokens)
             testnet_development_tokens -= vesting_amount
             circulating_supply += vesting_amount
+            # Tokens are now in circulation
 
-        # DAO consumes a percentage of its tokens for operations
-        dao_consumed = dao_treasury * dao_consumption_rate
-        dao_treasury -= dao_consumed
-        circulating_supply += dao_consumed  # Tokens enter circulation
+        # DAO consumes a percentage of its treasury annually, starting after a delay
+        if month >= dao_consumption_start_month and dao_treasury > 0:
+            dao_consumed = dao_treasury * dao_consumption_monthly_rate
+            dao_treasury -= dao_consumed
+            circulating_supply += dao_consumed
+            # Tokens are now in circulation
 
         # Ensure circulating supply does not exceed total supply
         if circulating_supply > total_supply_current:
@@ -208,8 +226,8 @@ def simulate(simulation_months, config):
             protocol_fee_poln = protocol_fee_usd / token_price
 
             # Ensure protocol_fee_poln doesn't become too small
-            if protocol_fee_poln < 1e-6:
-                protocol_fee_poln = 1e-6
+            if protocol_fee_poln < 1e-18:
+                protocol_fee_poln = 1e-18
 
             # Calculate staking amount
             staking_amount = protocol_fee_poln * staking_rate
@@ -217,35 +235,62 @@ def simulate(simulation_months, config):
             # Aggregate tokenomics calculations
             tokens_staked = staking_amount * num_missions
             tokens_burnt = staking_amount * num_failed
+
+            # Update total burnt tokens and reduce total supply
             total_burnt_tokens += tokens_burnt
             total_supply_current -= tokens_burnt
 
+            # Update circulating supply by removing burnt tokens
+            circulating_supply -= tokens_burnt
+
+            # Tokens fee distributed to fellowship members
             tokens_fee_distributed = protocol_fee_poln * num_successful
+            # Tokens fee to DAO treasury from failed missions
             tokens_fee_to_dao = protocol_fee_poln * num_failed
             dao_treasury += tokens_fee_to_dao
 
             net_token_demand = (protocol_fee_poln *
                                 num_missions) - tokens_burnt
 
-            # Update circulating supply
-            circulating_supply -= tokens_burnt
-
             # Ensure circulating supply does not go negative
             if circulating_supply < 0:
                 circulating_supply = 0
 
-            # Initiator receives rewards (immediately)
-            initiator_rewards = initiator_rewards_tokens / simulation_months
-            circulating_supply += initiator_rewards
-
-            # Initiator sells a percentage of rewards
-            initiator_sold = initiator_rewards * initiator_selling_percentage
-            circulating_supply += initiator_sold  # Tokens enter circulation
-
             # Fellowship members receive tokens (from staking rewards)
             fellowship_tokens = tokens_fee_distributed
             fellowship_sold = fellowship_tokens * fellowship_selling_percentage
-            circulating_supply += fellowship_sold  # Tokens enter circulation
+            # The sold tokens are already in circulation
+
+            # Initiator receives rewards based on halving mechanism
+            initiator_rewards_this_month = reward_per_mission * num_successful
+
+            # Reduce the initiator rewards pool
+            initiator_rewards_pool -= initiator_rewards_this_month
+            if initiator_rewards_pool < 0:
+                # Adjust rewards if pool is depleted
+                # initiator_rewards_pool is negative
+                initiator_rewards_this_month += initiator_rewards_pool
+                initiator_rewards_pool = 0
+
+            # Add initiator rewards to circulating supply
+            circulating_supply += initiator_rewards_this_month
+
+            # Initiator sells a percentage of rewards
+            initiator_sold = initiator_rewards_this_month * initiator_selling_percentage
+            # The sold tokens are already in circulation
+
+            # Check for halving
+            initial_initiator_pool = total_supply * \
+                token_distribution['Initiator Rewards']
+            halving_threshold = initial_initiator_pool / \
+                (2 ** (current_halving_index + 1))
+            if initiator_rewards_pool <= halving_threshold and reward_per_mission > minimum_reward:
+                # Halving occurs
+                reward_per_mission /= 2
+                current_halving_index += 1
+                # Ensure reward_per_mission does not go below minimum_reward
+                if reward_per_mission < minimum_reward:
+                    reward_per_mission = minimum_reward
 
         # Adjust token price based on net demand and market sentiment
         if circulating_supply > 0 and net_token_demand != 0:
@@ -275,6 +320,8 @@ def simulate(simulation_months, config):
             'Market Sentiment Index': current_msi,
             'Net Token Demand': net_token_demand,
             'Missions': num_missions,
+            'Initiator Rewards Pool': initiator_rewards_pool,
+            'Reward per Mission': reward_per_mission,
         })
 
     # Convert results to a pandas DataFrame
