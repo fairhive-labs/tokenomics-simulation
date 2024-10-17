@@ -32,7 +32,7 @@ def main():
         df = simulate(simulation_months, config)
 
         # Save results to CSV
-        csv_filename = f'results/simulation_{years}yrs.csv'
+        csv_filename = f'results/simulation_data_{years}yrs.csv'
         df.to_csv(csv_filename, index=False)
 
         # Plot results in landscape orientation
@@ -55,7 +55,7 @@ def main():
                  label='Circulating Supply', color='orange')
         plt.plot(df['Month'], df['Total Burnt Tokens'],
                  label='Total Burnt Tokens', color='green')
-        plt.title(f'Circulating Supply and Total Burnt Tokens')
+        plt.title('Circulating Supply and Total Burnt Tokens')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.grid(True)
@@ -75,7 +75,7 @@ def main():
         plt.subplot(2, 3, 4)
         plt.plot(df['Month'], df['Missions'],
                  label='Missions Conducted', color='red')
-        plt.title(f'Missions Conducted')
+        plt.title('Missions Conducted')
         plt.xlabel('Month')
         plt.ylabel('Number of Missions')
         plt.grid(True)
@@ -85,7 +85,7 @@ def main():
         plt.subplot(2, 3, 5)
         plt.plot(df['Month'], df['DAO Treasury'],
                  label='DAO Treasury', color='cyan')
-        plt.title(f'DAO Treasury')
+        plt.title('DAO Treasury')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.grid(True)
@@ -95,7 +95,7 @@ def main():
         plt.subplot(2, 3, 6)
         plt.plot(df['Month'], df['Initiator Rewards Pool'],
                  label='Initiator Rewards Pool', color='brown')
-        plt.title(f'Initiator Rewards Pool')
+        plt.title('Initiator Rewards Pool')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.grid(True)
