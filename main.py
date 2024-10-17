@@ -3,7 +3,7 @@ main.py
 
 This script runs the PoLN tokenomics simulation and outputs the results.
 It reads the configuration parameters from 'config.json', runs the simulation,
-saves the results to CSV files, and generates plots.
+saves the results to CSV files, generates plots, and prints a summary of results.
 
 Usage:
     python main.py
@@ -110,18 +110,18 @@ def main():
         plt.close()
 
         # Interpretation of Results
-        print(f"\nSimulation Results for {years} Years:")
-        print(f"Final Token Price: ${df['Token Price'].iloc[-1]:.2f}")
-        print(f"Final Circulating Supply: {
-              df['Circulating Supply'].iloc[-1]:,.0f} tokens")
-        print(f"Total Burnt Tokens: {
-              df['Total Burnt Tokens'].iloc[-1]:,.0f} tokens")
-        print(f"Final DAO Treasury: {df['DAO Treasury'].iloc[-1]:,.0f} tokens")
-        print(f"Final Initiator Rewards Pool: {
-              df['Initiator Rewards Pool'].iloc[-1]:,.0f} tokens")
-        print(f"Total Missions Conducted: {df['Missions'].sum():,.0f}")
-        print(f"Total Net Token Demand: {
-              df['Net Token Demand'].sum():,.0f} tokens")
+        print(f"\n--- Interpretation after {years} years ---")
+        final_price = df['Token Price'].iloc[-1]
+        final_supply = df['Circulating Supply'].iloc[-1]
+        final_total_supply = df['Total Supply'].iloc[-1]
+        total_burnt = df['Total Burnt Tokens'].iloc[-1]
+        dao_balance = df['DAO Treasury'].iloc[-1]
+        print(f"Final Token Price: ${final_price:.2f}")
+        print(f"Final Total Supply: {final_total_supply:,.2f} tokens")
+        print(f"Final Circulating Supply: {final_supply:,.2f} tokens")
+        print(f"Total Tokens Burnt: {total_burnt:,.2f} tokens")
+        print(f"DAO Treasury Balance: {dao_balance:,.2f} tokens")
+        print("----------------------------------------")
 
 
 if __name__ == '__main__':
