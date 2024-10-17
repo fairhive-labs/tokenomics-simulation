@@ -50,7 +50,6 @@ def simulate(simulation_months, config):
     dao_annual_consumption_rate = config['dao_annual_consumption_rate']
     dao_consumption_start_month = config['dao_consumption_start_month']
     fellowship_selling_percentage = config['fellowship_selling_percentage']
-    # Extracted
     builders_selling_percentage = config['builders_selling_percentage']
     private_sales = config['private_sales']
     initial_rewards = config['initiator_rewards_initial']
@@ -60,7 +59,7 @@ def simulate(simulation_months, config):
     builders_vesting_period = config['builders_vesting_period']
 
     # Initialize state variables
-    total_supply_current = total_supply
+    total_supply_current = total_supply  # Keep total supply constant
 
     # Tokens allocated
     builders_tokens = total_supply * token_distribution['Builders']
@@ -107,8 +106,8 @@ def simulate(simulation_months, config):
             circulating_supply += tokens_sold
 
     # Adjust total supply for tokens already added to circulating supply
-    total_supply_current -= (airdrops_giveaways_tokens +
-                             private_sales[2]['tokens_sold'])
+    # Note: Since total_supply_current remains constant, this adjustment is not needed
+    # total_supply_current -= (airdrops_giveaways_tokens + private_sales[2]['tokens_sold'])
 
     total_burnt_tokens = 0
     token_price = initial_price
@@ -197,9 +196,13 @@ def simulate(simulation_months, config):
             circulating_supply += dao_consumed
             # Tokens are now in circulation
 
-        # Ensure circulating supply does not exceed total supply
-        if circulating_supply > total_supply_current:
-            circulating_supply = total_supply_current
+        # Ensure circulating supply does not exceed the maximum total supply
+        if circulating_supply > total_supply:
+            circulating_supply = total_supply
+
+        # Ensure circulating supply does not go negative
+        if circulating_supply < 0:
+            circulating_supply = 0
 
         # Calculate baseline number of missions using logistic growth
         exponent = growth_rate * (month - inflection_point)
@@ -247,12 +250,15 @@ def simulate(simulation_months, config):
             tokens_staked = staking_amount * num_missions
             tokens_burnt = staking_amount * num_failed
 
-            # Update total burnt tokens and reduce total supply
+            # Update total burnt tokens (do not reduce total_supply_current)
             total_burnt_tokens += tokens_burnt
-            total_supply_current -= tokens_burnt
 
             # Update circulating supply by removing burnt tokens
             circulating_supply -= tokens_burnt
+
+            # Ensure circulating supply does not go negative
+            if circulating_supply < 0:
+                circulating_supply = 0
 
             # Tokens fee distributed to fellowship members
             tokens_fee_distributed = protocol_fee_poln * num_successful
@@ -283,6 +289,8 @@ def simulate(simulation_months, config):
             # Initiator sells a percentage of rewards
             initiator_sold = initiator_rewards_this_month * initiator_selling_percentage
 
+            # Builders' tokens sold were calculated earlier
+
             # Calculate net token demand
             net_token_demand = (
                 (protocol_fee_poln * num_missions)
@@ -306,6 +314,10 @@ def simulate(simulation_months, config):
                 # Ensure reward_per_mission does not go below minimum_reward_per_mission
                 if reward_per_mission < minimum_reward_per_mission:
                     reward_per_mission = minimum_reward_per_mission
+
+        # Ensure circulating supply does not exceed the maximum total supply
+        if circulating_supply > total_supply:
+            circulating_supply = total_supply
 
         # Adjust token price based on net demand and market sentiment
         if circulating_supply > 0 and net_token_demand != 0:
