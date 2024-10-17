@@ -1,3 +1,14 @@
+"""
+main.py
+
+This script runs the PoLN tokenomics simulation and outputs the results.
+It reads the configuration parameters from 'config.json', runs the simulation,
+saves the results to CSV files, and generates plots.
+
+Usage:
+    python main.py
+"""
+
 import json
 import os
 import matplotlib.pyplot as plt
@@ -5,8 +16,11 @@ from simulation import simulate
 
 
 def main():
+    """
+    Main function to execute the tokenomics simulation and handle output.
+    """
     # Load configuration
-    with open('config.json', 'r') as config_file:
+    with open('config.json', 'r', encoding='utf-8') as config_file:
         config = json.load(config_file)
 
     # Improved directory creation
@@ -94,6 +108,20 @@ def main():
         plot_filename = f'results/simulation_{years}yrs.png'
         plt.savefig(plot_filename)
         plt.close()
+
+        # Interpretation of Results
+        print(f"\nSimulation Results for {years} Years:")
+        print(f"Final Token Price: ${df['Token Price'].iloc[-1]:.2f}")
+        print(f"Final Circulating Supply: {
+              df['Circulating Supply'].iloc[-1]:,.0f} tokens")
+        print(f"Total Burnt Tokens: {
+              df['Total Burnt Tokens'].iloc[-1]:,.0f} tokens")
+        print(f"Final DAO Treasury: {df['DAO Treasury'].iloc[-1]:,.0f} tokens")
+        print(f"Final Initiator Rewards Pool: {
+              df['Initiator Rewards Pool'].iloc[-1]:,.0f} tokens")
+        print(f"Total Missions Conducted: {df['Missions'].sum():,.0f}")
+        print(f"Total Net Token Demand: {
+              df['Net Token Demand'].sum():,.0f} tokens")
 
 
 if __name__ == '__main__':
