@@ -62,7 +62,8 @@ def simulate(simulation_months, config):
     total_supply_current = total_supply  # Keep total supply constant
 
     # Tokens allocated
-    builders_tokens = total_supply * token_distribution['Builders']
+    builders_tokens_total = total_supply * token_distribution['Builders']
+    builders_tokens_remaining = builders_tokens_total
     dao_treasury = total_supply * token_distribution['DAO Treasury']
     airdrops_giveaways_tokens = total_supply * \
         token_distribution['Airdrops & Giveaways']
@@ -74,18 +75,19 @@ def simulate(simulation_months, config):
     )
 
     # Calculate private sale tokens under vesting
-    private_sale_vesting_tokens = sum(
-        sale['tokens_sold'] for sale in private_sales if sale['vesting_period'] > 0
+    private_sale_vesting_tokens_total = sum(
+        sale['tokens_sold'] for sale in private_sales
     )
+    private_sale_vesting_tokens_remaining = private_sale_vesting_tokens_total
 
     # Circulating supply excludes tokens not immediately available
     circulating_supply = total_supply - (
-        builders_tokens +
+        builders_tokens_remaining +
         dao_treasury +
         airdrops_giveaways_tokens +
-        private_sale_vesting_tokens +
         initiator_rewards_pool +
-        testnet_development_tokens
+        testnet_development_tokens +
+        private_sale_vesting_tokens_remaining
     )
 
     # Initialize private sales vesting schedules
@@ -104,10 +106,7 @@ def simulate(simulation_months, config):
         if vesting_period == 0:
             # Tokens with no vesting are added to circulating supply immediately
             circulating_supply += tokens_sold
-
-    # Adjust total supply for tokens already added to circulating supply
-    # Note: Since total_supply_current remains constant, this adjustment is not needed
-    # total_supply_current -= (airdrops_giveaways_tokens + private_sales[2]['tokens_sold'])
+            private_sale_vesting_tokens_remaining -= tokens_sold
 
     total_burnt_tokens = 0
     token_price = initial_price
@@ -116,7 +115,7 @@ def simulate(simulation_months, config):
     results = []
 
     # Builders' tokens vesting per month after lockup
-    builders_vesting_per_month = builders_tokens / \
+    builders_vesting_per_month = builders_tokens_total / \
         builders_vesting_period if builders_vesting_period > 0 else 0
 
     # DAO consumption tracking
@@ -157,24 +156,28 @@ def simulate(simulation_months, config):
                 current_msi = msi_normal
 
         # Vesting for builders after lockup period
-        if month > builders_lockup_period and builders_tokens > 0:
-            vesting_amount = min(builders_vesting_per_month, builders_tokens)
-            builders_tokens -= vesting_amount
+        builders_sold = 0
+        if month > builders_lockup_period and builders_tokens_remaining > 0:
+            vesting_amount = min(builders_vesting_per_month,
+                                 builders_tokens_remaining)
+            builders_tokens_remaining -= vesting_amount
             circulating_supply += vesting_amount
 
             # Builders' tokens are now in circulation
             # Builders sell a percentage of their tokens
             builders_sold = vesting_amount * builders_selling_percentage
-        else:
-            builders_sold = 0
 
         # Vesting for private sales
         for schedule in private_sales_vesting_schedules:
             if schedule['vesting_period'] > 0 and schedule['remaining_tokens'] > 0:
                 schedule['current_month'] += 1
                 if schedule['current_month'] <= schedule['vesting_period']:
-                    vesting_amount = schedule['vesting_amount_per_month']
+                    vesting_amount = min(
+                        schedule['vesting_amount_per_month'],
+                        schedule['remaining_tokens']
+                    )
                     schedule['remaining_tokens'] -= vesting_amount
+                    private_sale_vesting_tokens_remaining -= vesting_amount
                     circulating_supply += vesting_amount
                     # Tokens are now in circulation
 
@@ -192,13 +195,27 @@ def simulate(simulation_months, config):
         # DAO consumes a percentage of its treasury annually, starting after a delay
         if month >= dao_consumption_start_month and dao_treasury > 0:
             dao_consumed = dao_treasury * dao_consumption_monthly_rate
+            dao_consumed = min(dao_consumed, dao_treasury)
             dao_treasury -= dao_consumed
             circulating_supply += dao_consumed
             # Tokens are now in circulation
 
         # Ensure circulating supply does not exceed the maximum total supply
-        if circulating_supply > total_supply:
-            circulating_supply = total_supply
+        total_tokens_allocated = (
+            circulating_supply +
+            builders_tokens_remaining +
+            dao_treasury +
+            testnet_development_tokens +
+            initiator_rewards_pool +
+            private_sale_vesting_tokens_remaining
+        )
+
+        if total_tokens_allocated > total_supply:
+            # Adjust circulating supply accordingly
+            excess_tokens = total_tokens_allocated - total_supply
+            circulating_supply -= excess_tokens
+            if circulating_supply < 0:
+                circulating_supply = 0
 
         # Ensure circulating supply does not go negative
         if circulating_supply < 0:
@@ -274,14 +291,13 @@ def simulate(simulation_months, config):
             circulating_supply += fellowship_tokens
 
             # Initiator receives rewards
-            initiator_rewards_this_month = reward_per_mission * num_successful
+            initiator_rewards_this_month = min(
+                reward_per_mission * num_successful,
+                initiator_rewards_pool
+            )
 
             # Reduce the initiator rewards pool
             initiator_rewards_pool -= initiator_rewards_this_month
-            if initiator_rewards_pool < 0:
-                # Adjust rewards if pool is depleted
-                initiator_rewards_this_month += initiator_rewards_pool  # Negative value adjustment
-                initiator_rewards_pool = 0
 
             # Add initiator rewards to circulating supply (no lockup or vesting)
             circulating_supply += initiator_rewards_this_month
@@ -316,8 +332,22 @@ def simulate(simulation_months, config):
                     reward_per_mission = minimum_reward_per_mission
 
         # Ensure circulating supply does not exceed the maximum total supply
-        if circulating_supply > total_supply:
-            circulating_supply = total_supply
+        total_tokens_allocated = (
+            circulating_supply +
+            builders_tokens_remaining +
+            dao_treasury +
+            testnet_development_tokens +
+            initiator_rewards_pool +
+            sum(schedule['remaining_tokens']
+                for schedule in private_sales_vesting_schedules)
+        )
+
+        if total_tokens_allocated > total_supply:
+            # Adjust circulating supply accordingly
+            excess_tokens = total_tokens_allocated - total_supply
+            circulating_supply -= excess_tokens
+            if circulating_supply < 0:
+                circulating_supply = 0
 
         # Adjust token price based on net demand and market sentiment
         if circulating_supply > 0 and net_token_demand != 0:
