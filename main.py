@@ -35,11 +35,12 @@ def main():
         csv_filename = f'results/simulation_{years}yrs.csv'
         df.to_csv(csv_filename, index=False)
 
-        # Plot results
-        plt.figure(figsize=(15, 20))
+        # Plot results in landscape orientation
+        plt.figure(figsize=(20, 10))  # Wider figure for landscape orientation
 
+        # Subplot arrangement: 2 rows x 3 columns
         # Subplot 1: Token Price
-        plt.subplot(6, 1, 1)
+        plt.subplot(2, 3, 1)
         plt.plot(df['Month'], df['Token Price'],
                  label='Token Price', color='blue')
         plt.title(f'Token Price Over {years} Years')
@@ -49,20 +50,19 @@ def main():
         plt.legend()
 
         # Subplot 2: Circulating Supply and Total Burnt Tokens
-        plt.subplot(6, 1, 2)
+        plt.subplot(2, 3, 2)
         plt.plot(df['Month'], df['Circulating Supply'],
                  label='Circulating Supply', color='orange')
         plt.plot(df['Month'], df['Total Burnt Tokens'],
                  label='Total Burnt Tokens', color='green')
-        plt.title(f'Circulating Supply and Total Burnt Tokens Over {
-                  years} Years')
+        plt.title(f'Circulating Supply and Total Burnt Tokens')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.grid(True)
         plt.legend()
 
         # Subplot 3: Market Sentiment Index (MSI)
-        plt.subplot(6, 1, 3)
+        plt.subplot(2, 3, 3)
         plt.plot(df['Month'], df['Market Sentiment Index'],
                  label='Market Sentiment Index', color='purple')
         plt.title(f'Market Sentiment Index Over {years} Years')
@@ -72,30 +72,30 @@ def main():
         plt.legend()
 
         # Subplot 4: Missions Conducted
-        plt.subplot(6, 1, 4)
+        plt.subplot(2, 3, 4)
         plt.plot(df['Month'], df['Missions'],
                  label='Missions Conducted', color='red')
-        plt.title(f'Missions Conducted Over {years} Years')
+        plt.title(f'Missions Conducted')
         plt.xlabel('Month')
         plt.ylabel('Number of Missions')
         plt.grid(True)
         plt.legend()
 
         # Subplot 5: DAO Treasury
-        plt.subplot(6, 1, 5)
+        plt.subplot(2, 3, 5)
         plt.plot(df['Month'], df['DAO Treasury'],
                  label='DAO Treasury', color='cyan')
-        plt.title(f'DAO Treasury Over {years} Years')
+        plt.title(f'DAO Treasury')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.grid(True)
         plt.legend()
 
         # Subplot 6: Initiator Rewards Pool
-        plt.subplot(6, 1, 6)
+        plt.subplot(2, 3, 6)
         plt.plot(df['Month'], df['Initiator Rewards Pool'],
                  label='Initiator Rewards Pool', color='brown')
-        plt.title(f'Initiator Rewards Pool Over {years} Years')
+        plt.title(f'Initiator Rewards Pool')
         plt.xlabel('Month')
         plt.ylabel('Tokens')
         plt.grid(True)
