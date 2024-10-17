@@ -1,7 +1,6 @@
 import json
 import os
 import matplotlib.pyplot as plt
-import pandas as pd
 from simulation import simulate
 
 
@@ -27,30 +26,34 @@ def main():
 
         # Subplot 1: Token Price
         plt.subplot(6, 1, 1)
-        plt.plot(df['Month'], df['Token Price'], label='Token Price')
+        plt.plot(df['Month'], df['Token Price'],
+                 label='Token Price', color='blue')
         plt.title(f'Token Price Over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Token Price ($)')
         plt.grid(True)
         plt.legend()
 
-        # Subplot 2: Circulating Supply
+        # Subplot 2: Circulating Supply and Total Burnt Tokens
         plt.subplot(6, 1, 2)
         plt.plot(df['Month'], df['Circulating Supply'],
                  label='Circulating Supply', color='orange')
-        plt.title(f'Circulating Supply Over {years} Years')
+        plt.plot(df['Month'], df['Total Burnt Tokens'],
+                 label='Total Burnt Tokens', color='green')
+        plt.title(f'Circulating Supply and Total Burnt Tokens Over {
+                  years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Circulating Supply')
+        plt.ylabel('Tokens')
         plt.grid(True)
         plt.legend()
 
-        # Subplot 3: Total Burnt Tokens
+        # Subplot 3: Market Sentiment Index (MSI)
         plt.subplot(6, 1, 3)
-        plt.plot(df['Month'], df['Total Burnt Tokens'],
-                 label='Total Burnt Tokens', color='green')
-        plt.title(f'Total Burnt Tokens Over {years} Years')
+        plt.plot(df['Month'], df['Market Sentiment Index'],
+                 label='Market Sentiment Index', color='purple')
+        plt.title(f'Market Sentiment Index Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Total Burnt Tokens')
+        plt.ylabel('MSI')
         plt.grid(True)
         plt.legend()
 
@@ -64,13 +67,13 @@ def main():
         plt.grid(True)
         plt.legend()
 
-        # Subplot 5: Net Token Demand
+        # Subplot 5: DAO Treasury
         plt.subplot(6, 1, 5)
-        plt.plot(df['Month'], df['Net Token Demand'],
-                 label='Net Token Demand', color='purple')
-        plt.title(f'Net Token Demand Over {years} Years')
+        plt.plot(df['Month'], df['DAO Treasury'],
+                 label='DAO Treasury', color='cyan')
+        plt.title(f'DAO Treasury Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Net Token Demand')
+        plt.ylabel('Tokens')
         plt.grid(True)
         plt.legend()
 
@@ -80,7 +83,7 @@ def main():
                  label='Initiator Rewards Pool', color='brown')
         plt.title(f'Initiator Rewards Pool Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Initiator Rewards Pool')
+        plt.ylabel('Tokens')
         plt.grid(True)
         plt.legend()
 
