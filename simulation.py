@@ -37,6 +37,8 @@ def simulate(simulation_months, config):
     msi_bull = config['msi_bull']
     msi_bear = config['msi_bear']
     msi_normal = config['msi_normal']
+    roadmap_effect = config['roadmap_effect']
+    roadmap_cycle = config['roadmap_cycle']
     bull_market_probability = config['bull_market_probability']
     bear_market_probability = config['bear_market_probability']
     market_event_duration = config['market_event_duration']
@@ -155,7 +157,10 @@ def simulate(simulation_months, config):
             else:
                 current_msi = msi_normal
 
-        # Vesting for builders after lockup period
+        if month % roadmap_cycle == 0:
+            current_msi *= roadmap_effect
+
+            # Vesting for builders after lockup period
         builders_sold = 0
         if month > builders_lockup_period and builders_tokens_remaining > 0:
             vesting_amount = min(builders_vesting_per_month,

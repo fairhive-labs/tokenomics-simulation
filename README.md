@@ -103,6 +103,11 @@ Below is a list of key parameters you can adjust:
 - **Bear Market (`msi_bear`)**
 - **Normal Market (`msi_normal`)**
 
+### The Effects of Roadmap Execution
+
+- **Roadmap Effect (`roadmap_effect`)**: Factor modifying the MSI.
+- **Roadmap Phase(`roadmap_cycle`)**: Major segments of the project in months.
+
 ### Market Event Probabilities
 
 - **Bull Market Probability (`bull_market_probability`)**

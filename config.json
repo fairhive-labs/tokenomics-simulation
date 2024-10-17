@@ -9,6 +9,8 @@
     "msi_bull": 1.2,
     "msi_bear": 0.8,
     "msi_normal": 1.0,
+    "roadmap_effect": 1.5,
+    "roadmap_cycle": 6,
     "bull_market_probability": 0.05,
     "bear_market_probability": 0.05,
     "market_event_duration": 3,
