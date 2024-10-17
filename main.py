@@ -1,114 +1,97 @@
-"""
-main.py
-
-This script runs the $POLN tokenomics simulation.
-It reads the configuration from 'config.json' and uses the 'simulation.py' module
-to perform the simulation. The results are then plotted and saved to PNG files.
-
-Usage:
-    python main.py [config_file]
-
-If no configuration file is specified, 'config.json' is used by default.
-"""
-
-import sys
 import json
-import numpy as np
+import os
 import matplotlib.pyplot as plt
+import pandas as pd
 from simulation import simulate
 
-# Set random seed for reproducibility
-np.random.seed(42)
 
 def main():
-    """
-    Main function to run the simulation and plot results.
-    """
-    # Use the configuration file specified in the command-line arguments
-    config_file_name = sys.argv[1] if len(sys.argv) > 1 else 'config.json'
-    with open(config_file_name, 'r', encoding='utf-8') as config_file:
+    # Load configuration
+    with open('config.json', 'r') as config_file:
         config = json.load(config_file)
 
-    # Extract simulation periods
-    simulation_years = config['simulation_years']
-    months_per_year = config['months_per_year']
+    # Improved directory creation
+    os.makedirs('results', exist_ok=True)
 
-    # Run simulations for each period
-    for years in simulation_years:
-        simulation_months = years * months_per_year
-        print(f"\nSimulating {years} years ({simulation_months} months)...")
+    # Run simulations for each specified duration
+    for years in config['simulation_years']:
+        simulation_months = years * config['months_per_year']
         df = simulate(simulation_months, config)
 
-        # Save simulation data to CSV
-        df.to_csv(f'simulation_data_{years}years.csv', index=False, encoding='utf-8')
+        # Save results to CSV
+        csv_filename = f'results/simulation_{years}yrs.csv'
+        df.to_csv(csv_filename, index=False)
 
-        # Plotting the results
-        plt.figure(figsize=(16, 12))  # Adjusted figure size for better layout
+        # Plot results
+        plt.figure(figsize=(15, 20))
 
-        # Use a 3x2 grid layout for subplots
-        # Subplot 1: Circulating Supply and Total Burnt Tokens
-        plt.subplot(3, 2, 1)
-        plt.plot(df['Month'], df['Circulating Supply'], label='Circulating Supply')
-        plt.plot(df['Month'], df['Total Burnt Tokens'], label='Total Burnt Tokens')
-        plt.title(f'$POLN Token Supply over {years} Years')
+        # Subplot 1: Token Price
+        plt.subplot(6, 1, 1)
+        plt.plot(df['Month'], df['Token Price'], label='Token Price')
+        plt.title(f'Token Price Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Tokens')
+        plt.ylabel('Token Price ($)')
+        plt.grid(True)
         plt.legend()
 
-        # Subplot 2: Token Price
-        plt.subplot(3, 2, 2)
-        plt.plot(df['Month'], df['Token Price'], color='green')
-        plt.title(f'$POLN Token Price over {years} Years')
+        # Subplot 2: Circulating Supply
+        plt.subplot(6, 1, 2)
+        plt.plot(df['Month'], df['Circulating Supply'],
+                 label='Circulating Supply', color='orange')
+        plt.title(f'Circulating Supply Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Token Price in USD')
+        plt.ylabel('Circulating Supply')
+        plt.grid(True)
+        plt.legend()
 
-        # Subplot 3: DAO Treasury Balance
-        plt.subplot(3, 2, 3)
-        plt.plot(df['Month'], df['DAO Treasury'], color='purple')
-        plt.title(f'DAO Treasury Balance over {years} Years')
+        # Subplot 3: Total Burnt Tokens
+        plt.subplot(6, 1, 3)
+        plt.plot(df['Month'], df['Total Burnt Tokens'],
+                 label='Total Burnt Tokens', color='green')
+        plt.title(f'Total Burnt Tokens Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('Tokens in DAO Treasury')
+        plt.ylabel('Total Burnt Tokens')
+        plt.grid(True)
+        plt.legend()
 
-        # Subplot 4: Number of Missions
-        plt.subplot(3, 2, 4)
-        plt.plot(df['Month'], df['Missions'], label='Missions')
-        plt.title(f'Number of Missions over {years} Years')
+        # Subplot 4: Missions Conducted
+        plt.subplot(6, 1, 4)
+        plt.plot(df['Month'], df['Missions'],
+                 label='Missions Conducted', color='red')
+        plt.title(f'Missions Conducted Over {years} Years')
         plt.xlabel('Month')
         plt.ylabel('Number of Missions')
+        plt.grid(True)
         plt.legend()
 
-        # Subplot 5: Market Sentiment Index
-        plt.subplot(3, 2, 5)
-        plt.plot(df['Month'], df['Market Sentiment Index'], color='blue')
-        plt.title(f'Market Sentiment Index over {years} Years')
+        # Subplot 5: Net Token Demand
+        plt.subplot(6, 1, 5)
+        plt.plot(df['Month'], df['Net Token Demand'],
+                 label='Net Token Demand', color='purple')
+        plt.title(f'Net Token Demand Over {years} Years')
         plt.xlabel('Month')
-        plt.ylabel('MSI')
+        plt.ylabel('Net Token Demand')
+        plt.grid(True)
+        plt.legend()
 
-        # Hide the empty subplot (6th position in 3x2 grid)
-        plt.subplot(3, 2, 6)
-        plt.axis('off')
+        # Subplot 6: Initiator Rewards Pool
+        plt.subplot(6, 1, 6)
+        plt.plot(df['Month'], df['Initiator Rewards Pool'],
+                 label='Initiator Rewards Pool', color='brown')
+        plt.title(f'Initiator Rewards Pool Over {years} Years')
+        plt.xlabel('Month')
+        plt.ylabel('Initiator Rewards Pool')
+        plt.grid(True)
+        plt.legend()
 
+        # Adjust layout
         plt.tight_layout()
 
-        # Save the figure to a PNG file
-        plt.savefig(f'simulation-{years}years.png', dpi=300)
+        # Save plot
+        plot_filename = f'results/simulation_{years}yrs.png'
+        plt.savefig(plot_filename)
+        plt.close()
 
-        # Clear the current figure to avoid overlap in the next iteration
-        plt.clf()
 
-        # Interpretation of Results
-        print(f"--- Interpretation after {years} years ---")
-        final_price = df['Token Price'].iloc[-1]
-        final_supply = df['Circulating Supply'].iloc[-1]
-        final_total_supply = df['Total Supply'].iloc[-1]
-        total_burnt = df['Total Burnt Tokens'].iloc[-1]
-        dao_balance = df['DAO Treasury'].iloc[-1]
-        print(f"Final Token Price: ${final_price:.2f}")
-        print(f"Final Total Supply: {final_total_supply:.2f} tokens")
-        print(f"Final Circulating Supply: {final_supply:.2f} tokens")
-        print(f"Total Tokens Burnt: {total_burnt:.2f} tokens")
-        print(f"DAO Treasury Balance: {dao_balance:.2f} tokens")
-        print("----------------------------------------")
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
