@@ -110,7 +110,7 @@ def main():
         plt.close()
 
         # Interpretation of Results
-        print(f"\n--- Interpretation after {years} years ---")
+        print(f"\n--- \033[7;32mInterpretation after {years} years\033[0m ---")
         final_price = df['Token Price'].iloc[-1]
         final_supply = df['Circulating Supply'].iloc[-1]
         final_total_supply = df['Total Supply'].iloc[-1]
