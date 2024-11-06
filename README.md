@@ -22,6 +22,18 @@ We appreciate your understanding and patience as we enhance its functionality an
 
 ## Installation
 
+### Clone the Repository
+
+```bash
+git clone https://github.com/fairhive-labs/tokenomics-simulation.git
+```
+
+### Navigate to the Directory
+
+```bash
+cd tokenomics-simulation
+```
+
 ### Create a Virtual Environment
 
 It's recommended to use a virtual environment to manage dependencies.
@@ -53,18 +65,6 @@ pip install numpy pandas matplotlib
 ```
 
 ## Usage
-
-### Clone the Repository
-
-```bash
-git clone https://github.com/fairhive-labs/tokenomics-simulation.git
-```
-
-### Navigate to the Directory
-
-```bash
-cd tokenomics-simulation
-```
 
 ### Configure Simulation Parameters
 
