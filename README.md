@@ -64,6 +64,12 @@ Install the necessary Python packages inside the virtual environment.
 pip install numpy pandas matplotlib
 ```
 
+> or
+
+```bash
+pip install -r requirements.txt
+```
+
 ## Usage
 
 ### Configure Simulation Parameters
