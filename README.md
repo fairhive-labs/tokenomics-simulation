@@ -1,160 +1,144 @@
-
 # PoLN Tokenomics Simulation
 
-This repository contains a simulation tool for modeling the tokenomics of the PoLN protocol. The simulation helps visualize and understand how different parameters affect the token economy over time.
+A Monte Carlo simulation of the **$POLN** token economy. Models token price dynamics, circulating supply, burn mechanics, staking, mission growth, DAO treasury flows, vesting schedules, and market sentiment over configurable time horizons (3, 5, 10 years).
 
-## Disclaimer
+## How It Works
 
-This simulation tool is a work in progress. It is developed to provide insights into the PoLN tokenomics model, but it may contain errors or limitations. The results should be considered estimates and should not be used for critical or high-stakes decisions without further verification.
+The simulation runs a month-by-month loop that:
 
-We appreciate your understanding and patience as we enhance its functionality and accuracy. If you encounter any issues or have suggestions for improvement, please contact us. Your feedback is valuable and will help us improve the tool further. Thank you for using this simulation tool.
+1. **Generates missions** using logistic growth with seasonal adjustments and random fluctuations
+2. **Processes protocol fees** — staking, burning (on failed missions), and distributing to fellowship members
+3. **Vests tokens** across builders, private sale investors, testnet partners, and initiator rewards (with halving)
+4. **Adjusts token price** based on net demand/supply ratio, market sentiment (bull/bear/normal), and roadmap milestones
+5. **Tracks DAO treasury** consumption over time
 
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-- [Simulation Parameters](#simulation-parameters)
-- [Adjustable Parameters](#adjustable-parameters)
-- [Analyzing Results](#analyzing-results)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
+All parameters are defined in `config.json`. Each run produces CSV data and plots in `results/`.
 
 ## Installation
 
-### Clone the Repository
-
 ```bash
 git clone https://github.com/fairhive-labs/tokenomics-simulation.git
-```
-
-### Navigate to the Directory
-
-```bash
 cd tokenomics-simulation
-```
-
-### Create a Virtual Environment
-
-It's recommended to use a virtual environment to manage dependencies.
-
-```bash
 python -m venv venv
-```
-
-### Activate the Virtual Environment
-
-On Windows:
-
-```bash
-venv\Scripts\activate
-```
-
-On macOS/Linux:
-
-```bash
-source venv/bin/activate
-```
-
-### Install Required Packages
-
-Install the necessary Python packages inside the virtual environment.
-
-```bash
-pip install numpy pandas matplotlib
-```
-
-> or
-
-```bash
+source venv/bin/activate  # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Requirements
+
+| Package | Version |
+|---|---|
+| contourpy | 1.3.3 |
+| cycler | 0.12.1 |
+| fonttools | 4.62.1 |
+| kiwisolver | 1.5.0 |
+| matplotlib | 3.10.8 |
+| numpy | 2.4.4 |
+| packaging | 26.0 |
+| pandas | 3.0.2 |
+| pillow | 12.2.0 |
+| pyparsing | 3.3.2 |
+| python-dateutil | 2.9.0.post0 |
+| pytz | 2026.1.post1 |
+| six | 1.17.0 |
+| tzdata | 2026.1 |
+
 ## Usage
 
-### Configure Simulation Parameters
+### Configure
 
-Edit the `config.json` file to adjust the simulation parameters.  
-See [Simulation Parameters](#simulation-parameters) for details.
+Edit `config.json` to adjust simulation parameters (see [Parameters](#parameters) below).
 
-### Run the Simulation
+### Run
 
 ```bash
 python main.py
 ```
 
-### View Results
+### Results
 
-The simulation outputs CSV files and plots in the `results` directory. Analyze the results to understand the tokenomics over time.
+Output goes to `results/`:
+- `simulation_data_{N}yrs.csv` — monthly data for each time horizon
+- `simulation_{N}yrs.png` — 6-panel plot (token price, supply & burn, market sentiment, missions, DAO treasury, initiator rewards)
 
-## Simulation Parameters
+## Sample Output
 
-The simulation is controlled by parameters defined in the `config.json` file. Adjusting these parameters allows you to model different scenarios and observe how they affect the token economy.
+### 3-Year Simulation
 
-## Adjustable Parameters
+![3-year simulation](results/simulation_3yrs.png)
 
-Below is a list of key parameters you can adjust:
+Short-term view showing early mission growth ramp-up, initial token vesting effects, and price discovery phase.
 
-- **Total Supply (`total_supply`)**: The total number of tokens in existence.
-- **Initial Token Price (`initial_price`)**: The starting price of the token in USD.
-- **Project Cost (`project_cost`)**: The average cost of a project or mission in USD.
-- **Protocol Fee Rate (`protocol_fee_rate`)**: The percentage fee charged by the protocol per mission.
-- **Staking Rate (`staking_rate`)**: The proportion of the protocol fee that must be staked in $POLN.
-- **Mission Success Rate (`mission_success_rate`)**: The probability of a mission being successful.
-- **Price Elasticity Coefficient (`pec`)**: Determines how sensitive the token price is to changes in net token demand relative to the circulating supply.
+### 5-Year Simulation
 
-### Market Sentiment Indices
+![5-year simulation](results/simulation_5yrs.png)
 
-- **Bull Market (`msi_bull`)**
-- **Bear Market (`msi_bear`)**
-- **Normal Market (`msi_normal`)**
+Mid-term view capturing the full logistic growth S-curve, reward halving events, and DAO treasury drawdown kicking in.
 
-### The Effects of Roadmap Execution
+### 10-Year Simulation
 
-- **Roadmap Effect (`roadmap_effect`)**: Factor modifying the MSI.
-- **Roadmap Phase(`roadmap_cycle`)**: Major segments of the project in months.
+![10-year simulation](results/simulation_10yrs.png)
 
-### Market Event Probabilities
+Long-term view showing mission saturation at carrying capacity, circulating supply stabilization, cumulative burn impact, and sustained market sentiment cycles.
 
-- **Bull Market Probability (`bull_market_probability`)**
-- **Bear Market Probability (`bear_market_probability`)**
-- **Market Event Duration (`market_event_duration`)**: Duration of market events in months.
-- **Random Fluctuation (`random_fluctuation`)**: The magnitude of random fluctuations applied to the number of missions.
+## Parameters
 
-### Mission Growth Parameters
+All parameters live in [`config.json`](config.json).
 
-- **Carrying Capacity (`carrying_capacity`)**: Maximum number of missions achievable in the growth model.
-- **Growth Rate (`growth_rate`)**: Controls the speed at which mission numbers grow over time.
-- **Inflection Point (`inflection_point`)**: The month when mission growth shifts from accelerating to decelerating.
-- **Seasonality (`seasonality`)**: Adjustments based on the month.
+### Core Economics
 
-### Simulation Duration Parameters
+| Parameter | Key | Description |
+|---|---|---|
+| Total Supply | `total_supply` | Total number of $POLN tokens (200M) |
+| Initial Price | `initial_price` | Starting token price in USD |
+| Project Cost | `project_cost` | Average mission cost in USD |
+| Protocol Fee Rate | `protocol_fee_rate` | Fee percentage charged per mission |
+| Staking Rate | `staking_rate` | Fraction of protocol fee staked in $POLN |
+| Mission Success Rate | `mission_success_rate` | Probability a mission succeeds |
+| Price Elasticity | `pec` | Sensitivity of price to demand/supply ratio changes |
 
-- **Simulation Years (`simulation_years`)**: The durations in years for running the simulation.
-- **Months per Year (`months_per_year`)**: The number of months in a year, typically 12.
+### Market Sentiment
 
-### Token Distribution Parameters
+| Parameter | Key | Description |
+|---|---|---|
+| Bull / Bear / Normal MSI | `msi_bull`, `msi_bear`, `msi_normal` | Sentiment multipliers |
+| Bull / Bear Probability | `bull_market_probability`, `bear_market_probability` | Monthly event probability |
+| Event Duration | `market_event_duration` | How long market events last (months) |
+| Roadmap Effect | `roadmap_effect` | MSI multiplier at roadmap milestones |
+| Roadmap Cycle | `roadmap_cycle` | Milestone interval (months) |
+| Random Fluctuation | `random_fluctuation` | Mission count noise magnitude |
 
-- **Token Distribution (`token_distribution`)**: Allocation of total supply among groups.
+### Mission Growth
 
-### Builders' Lockup and Vesting
+| Parameter | Key | Description |
+|---|---|---|
+| Carrying Capacity | `carrying_capacity` | Maximum achievable missions |
+| Growth Rate | `growth_rate` | Logistic growth speed |
+| Inflection Point | `inflection_point` | Month when growth shifts from accelerating to decelerating |
+| Seasonality | `seasonality` | Monthly adjustment factors (1-12) |
 
-- **Builders' Lockup Period (`builders_lockup_period`)**
-- **Builders' Vesting Period (`builders_vesting_period`)**
-- **Builders' Selling Percentage (`builders_selling_percentage`)**: Fraction of vested tokens sold monthly.
-- **Testnet Distribution Period (`testnet_distribution_period`)**
-- **Initiator Selling Percentage (`initiator_selling_percentage`)**
+### Token Distribution
 
-### DAO Parameters
+| Parameter | Key | Description |
+|---|---|---|
+| Distribution | `token_distribution` | Allocation across groups (Public Sales 30%, Initiator Rewards 20%, Private Sales 25%, Builders 10%, DAO Treasury 10%, Testnet 2%, Airdrops 3%) |
+| Builders Lockup | `builders_lockup_period` | Months before builders can vest |
+| Builders Vesting | `builders_vesting_period` | Linear vesting duration (months) |
+| Builders Selling % | `builders_selling_percentage` | Fraction of vested tokens sold monthly |
+| Testnet Distribution | `testnet_distribution_period` | Distribution period (years) |
+| Initiator Selling % | `initiator_selling_percentage` | Fraction of rewards sold monthly |
 
-- **DAO Annual Consumption Rate (`dao_annual_consumption_rate`)**
-- **DAO Consumption Start Month (`dao_consumption_start_month`)**: When DAO starts consuming its treasury.
-- **Fellowship Selling Percentage (`fellowship_selling_percentage`)**
+### DAO
+
+| Parameter | Key | Description |
+|---|---|---|
+| Annual Consumption Rate | `dao_annual_consumption_rate` | Yearly treasury drawdown rate |
+| Consumption Start | `dao_consumption_start_month` | Month DAO begins spending |
+| Fellowship Selling % | `fellowship_selling_percentage` | Fraction of fee distributions sold |
 
 ### Private Sales
 
-Private sales details, including tokens sold, price, and vesting period.
-Example:
+Array of sale rounds with `tokens_sold`, `price`, and `vesting_period` (months). Example:
 
 ```json
 [
@@ -166,64 +150,29 @@ Example:
 
 ### Initiator Rewards
 
-- **Initial Rewards per Mission**: The initial rewards given for missions.
-Example:
+Tiered reward structure with halving mechanics. Initial rewards per mission type:
 
 ```json
 {"daily": 8.00, "weekly": 64.00, "monthly": 512.00, "quarterly": 4096.00, "half_yearly": 32768.00}
 ```
 
-- **Minimum Reward per Mission (`minimum_reward_per_mission`)**: Prevents rewards from becoming negligibly small.
+Rewards halve as the pool depletes, with a floor at `minimum_reward_per_mission` (1e-18).
 
-## Analyzing Results
+## Disclaimer
 
-After running the simulation:
-
-- **CSV Outputs**: Found in the `results` directory, containing detailed monthly data.
-- **Plots**: Visual representations of key metrics over time.
-
-Key Metrics:
-
-- Token Price
-- Circulating Supply
-- Total Supply
-- Net Token Demand
-- Tokens Burnt
-- Missions Conducted
-- Initiator Rewards Pool
-- DAO Treasury
-- Tokens Staked
-- Tokens Fee Distributed
+This simulation is a modeling tool for exploring PoLN tokenomics scenarios. Results are estimates based on configurable assumptions and stochastic processes — they should not be used as the sole basis for financial decisions.
 
 ## Contributing
 
-We welcome contributions to enhance the simulation tool. Please follow these steps:
-
-1. Fork the Repository
-2. Create a Feature Branch
-
-    ```bash
-    git checkout -b feature/your-feature-name
-    ```
-
-3. Commit Your Changes
-
-    ```bash
-    git commit -m "Your detailed description of the changes."
-    ```
-
-4. Push to Your Branch
-
-    ```bash
-    git push origin feature/your-feature-name
-    ```
-
-5. Create a Pull Request
+1. Fork the repo
+2. Create a feature branch (`git checkout -b feature/your-feature`)
+3. Commit and push your changes
+4. Open a Pull Request
 
 ## License
 
-This project is licensed under the MIT License. See the LICENSE file for details.
+[MIT](LICENSE) - fairhive-labs
 
 ## Contact
 
-If you have any questions or need assistance, please open an issue in the repository or contact us at <contact@poln.org>.
+Questions or issues? [Open an issue](https://github.com/fairhive-labs/tokenomics-simulation/issues) or email <contact@poln.org>.
