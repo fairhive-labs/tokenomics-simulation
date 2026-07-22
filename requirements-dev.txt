@@ -4,3 +4,4 @@ pytest
 pytest-cov
 bandit
 pylint
+pip-audit

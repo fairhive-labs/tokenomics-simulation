@@ -38,7 +38,7 @@ pip install -r requirements.txt
 | numpy | 2.4.4 |
 | packaging | 26.0 |
 | pandas | 3.0.2 |
-| pillow | 12.2.0 |
+| pillow | 12.3.0 |
 | pyparsing | 3.3.2 |
 | python-dateutil | 2.9.0.post0 |
 | pytz | 2026.1.post1 |
@@ -171,6 +171,7 @@ pip install -r requirements-dev.txt
 pytest                       # unit tests + coverage (fails under 90%)
 pylint simulation.py main.py # lint
 bandit -r simulation.py main.py  # security scan
+pip-audit -r requirements.txt    # dependency vulnerability audit
 ```
 
 The same checks run in CI (`.github/workflows/ci.yml`) on Python 3.11 and 3.12.
