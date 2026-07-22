@@ -1,5 +1,7 @@
 # PoLN Tokenomics Simulation
 
+[![CI](https://github.com/fairhive-labs/tokenomics-simulation/actions/workflows/ci.yml/badge.svg)](https://github.com/fairhive-labs/tokenomics-simulation/actions/workflows/ci.yml)
+
 A Monte Carlo simulation of the **$POLN** token economy. Models token price dynamics, circulating supply, burn mechanics, staking, mission growth, DAO treasury flows, vesting schedules, and market sentiment over configurable time horizons (3, 5, 10 years).
 
 ## How It Works
@@ -96,6 +98,7 @@ All parameters live in [`config.json`](config.json).
 | Staking Rate | `staking_rate` | Fraction of protocol fee staked in $POLN |
 | Mission Success Rate | `mission_success_rate` | Probability a mission succeeds |
 | Price Elasticity | `pec` | Sensitivity of price to demand/supply ratio changes |
+| Random Seed | `random_seed` | Optional integer for reproducible runs. Set to `null` for a nondeterministic (fresh-random) run each time. |
 
 ### Market Sentiment
 
@@ -157,6 +160,39 @@ Tiered reward structure with halving mechanics. Initial rewards per mission type
 ```
 
 Rewards halve as the pool depletes, with a floor at `minimum_reward_per_mission` (1e-18).
+
+## Development
+
+Install the runtime and tooling dependencies, then run the quality gate:
+
+```bash
+pip install -r requirements-dev.txt
+
+pytest                       # unit tests + coverage (fails under 90%)
+pylint simulation.py main.py # lint
+bandit -r simulation.py main.py  # security scan
+```
+
+The same checks run in CI (`.github/workflows/ci.yml`) on Python 3.11 and 3.12.
+The simulation is deterministic under a fixed `random_seed`, so tests assert
+exact reproducibility. Runs are driven by `numpy`'s `Generator` (seedable and
+free of the insecure-PRNG static-analysis warning).
+
+## Notes on Model Corrections
+
+This release corrects a few modelling issues from earlier versions:
+
+- **Testnet vesting** now releases a fixed linear tranche computed from the
+  initial allocation, so testnet tokens fully distribute over their window
+  (previously the tranche was recomputed on the shrinking balance, decaying
+  exponentially and never fully vesting).
+- **Reward halving** is evaluated every month rather than only in months with
+  missions.
+- **Private-sale accounting** is consistent between supply-clamping steps
+  (zero-vesting rounds are counted as liquid once, not double-counted).
+
+Because of these fixes and seed-based determinism, numeric outputs differ from
+pre-1.0 runs.
 
 ## Disclaimer
 

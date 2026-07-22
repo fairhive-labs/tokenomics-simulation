@@ -1,4 +1,5 @@
 {
+    "random_seed": 42,
     "total_supply": 200000000,
     "initial_price": 1.50,
     "project_cost": 10000,

@@ -1,0 +1,6 @@
+# Development & CI tooling (runtime deps are in requirements.txt).
+-r requirements.txt
+pytest
+pytest-cov
+bandit
+pylint

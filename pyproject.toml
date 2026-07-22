@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "poln-tokenomics-simulation"
+version = "1.0.0"
+description = "Monte Carlo simulation of the $POLN token economy"
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+dynamic = ["dependencies"]
+
+[tool.setuptools]
+py-modules = ["simulation", "main"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=simulation --cov=main --cov-report=term-missing --cov-fail-under=90"
+
+[tool.coverage.run]
+source = ["simulation", "main"]
+omit = ["tests/*"]
+
+[tool.coverage.report]
+show_missing = true
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:",
+]
+
+[tool.pylint.main]
+py-version = "3.11"
+
+[tool.pylint.design]
+max-locals = 20
+max-args = 8
+
+[tool.pylint.format]
+max-line-length = 100
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv"]
