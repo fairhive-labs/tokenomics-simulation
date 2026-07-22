@@ -19,6 +19,7 @@ dependencies = { file = ["requirements.txt"] }
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "--cov=simulation --cov=main --cov-report=term-missing --cov-fail-under=90"
 
 [tool.coverage.run]
