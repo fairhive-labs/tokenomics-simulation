@@ -1,9 +1,11 @@
 """
 main.py
 
-This script runs the PoLN tokenomics simulation and outputs the results.
-It reads the configuration parameters from 'config.json', runs the simulation,
-saves the results to CSV files, generates plots, and prints a summary of results.
+Run the PoLN tokenomics simulation and emit its outputs.
+
+Reads parameters from ``config.json``, runs the simulation for each configured
+horizon, writes per-horizon CSV data and a 6-panel plot into ``results/``, and
+prints a short summary for each run.
 
 Usage:
     python main.py
@@ -11,118 +13,123 @@ Usage:
 
 import json
 import os
-import matplotlib.pyplot as plt
-from simulation import simulate
+import sys
+
+import matplotlib
+
+# Use a non-interactive backend so plotting works headless (CI, servers). The
+# backend must be selected before pyplot is imported, hence the deferred imports.
+matplotlib.use("Agg")
+# pylint: disable=wrong-import-position
+import matplotlib.pyplot as plt  # noqa: E402
+from simulation import simulate  # noqa: E402
+# pylint: enable=wrong-import-position
+
+DEFAULT_CONFIG_PATH = "config.json"
+DEFAULT_RESULTS_DIR = "results"
+
+# Subplot layout: (column, title, y-axis label, [(series, colour), ...]).
+PLOT_PANELS = (
+    ("Token Price", "Token Price ($)", [("Token Price", "blue")]),
+    (
+        "Circulating Supply and Total Burnt Tokens",
+        "Tokens",
+        [("Circulating Supply", "orange"), ("Total Burnt Tokens", "green")],
+    ),
+    ("Market Sentiment Index", "MSI", [("Market Sentiment Index", "purple")]),
+    ("Missions Conducted", "Number of Missions", [("Missions", "red")]),
+    ("DAO Treasury", "Tokens", [("DAO Treasury", "cyan")]),
+    ("Initiator Rewards Pool", "Tokens", [("Initiator Rewards Pool", "brown")]),
+)
+
+
+def load_config(path=DEFAULT_CONFIG_PATH):
+    """Load and parse the JSON configuration file.
+
+    Raises a :class:`SystemExit` with a helpful message if the file is missing
+    or contains invalid JSON.
+    """
+    try:
+        with open(path, "r", encoding="utf-8") as config_file:
+            return json.load(config_file)
+    except FileNotFoundError as exc:
+        raise SystemExit(f"Configuration file not found: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Invalid JSON in {path}: {exc}") from exc
+
+
+def plot_results(df, years, results_dir=DEFAULT_RESULTS_DIR):
+    """Render the 6-panel figure for a run and save it as a PNG.
+
+    Returns the path of the written file.
+    """
+    plt.figure(figsize=(20, 10))  # Landscape orientation.
+    for index, (title, ylabel, series) in enumerate(PLOT_PANELS, start=1):
+        plt.subplot(2, 3, index)
+        for column, colour in series:
+            plt.plot(df["Month"], df[column], label=column, color=colour)
+        plt.title(f"{title} Over {years} Years" if index in (1, 3) else title)
+        plt.xlabel("Month")
+        plt.ylabel(ylabel)
+        plt.grid(True)
+        plt.legend()
+
+    plt.tight_layout()
+    plot_filename = os.path.join(results_dir, f"simulation_{years}yrs.png")
+    plt.savefig(plot_filename)
+    plt.close()
+    return plot_filename
+
+
+def summarize(df, years):
+    """Return a summary mapping of final-month metrics for a run."""
+    last = df.iloc[-1]
+    return {
+        "years": years,
+        "final_price": last["Token Price"],
+        "final_total_supply": last["Total Supply"],
+        "final_circulating_supply": last["Circulating Supply"],
+        "total_burnt": last["Total Burnt Tokens"],
+        "dao_balance": last["DAO Treasury"],
+    }
+
+
+def _print_summary(summary):
+    """Print a human-readable summary block for a single run."""
+    years = summary["years"]
+    print(f"\n--- \033[7;32mInterpretation after {years} years\033[0m ---")
+    print(f"Final Token Price: ${summary['final_price']:.2f}")
+    print(f"Final Total Supply: {summary['final_total_supply']:,.2f} tokens")
+    print(f"Final Circulating Supply: {summary['final_circulating_supply']:,.2f} tokens")
+    print(f"Total Tokens Burnt: {summary['total_burnt']:,.2f} tokens")
+    print(f"DAO Treasury Balance: {summary['dao_balance']:,.2f} tokens")
+    print("----------------------------------------")
+
+
+def run_all(config, results_dir=DEFAULT_RESULTS_DIR):
+    """Run every configured horizon, writing CSV + plots, and return summaries."""
+    os.makedirs(results_dir, exist_ok=True)
+    summaries = []
+    months_per_year = config["months_per_year"]
+    for years in config["simulation_years"]:
+        df = simulate(years * months_per_year, config)
+
+        csv_filename = os.path.join(results_dir, f"simulation_data_{years}yrs.csv")
+        df.to_csv(csv_filename, index=False)
+        plot_results(df, years, results_dir)
+
+        if df.empty:
+            continue
+        summaries.append(summarize(df, years))
+    return summaries
 
 
 def main():
-    """
-    Main function to execute the tokenomics simulation and handle output.
-    """
-    # Load configuration
-    with open('config.json', 'r', encoding='utf-8') as config_file:
-        config = json.load(config_file)
-
-    # Improved directory creation
-    os.makedirs('results', exist_ok=True)
-
-    # Run simulations for each specified duration
-    for years in config['simulation_years']:
-        simulation_months = years * config['months_per_year']
-        df = simulate(simulation_months, config)
-
-        # Save results to CSV
-        csv_filename = f'results/simulation_data_{years}yrs.csv'
-        df.to_csv(csv_filename, index=False)
-
-        # Plot results in landscape orientation
-        plt.figure(figsize=(20, 10))  # Wider figure for landscape orientation
-
-        # Subplot arrangement: 2 rows x 3 columns
-        # Subplot 1: Token Price
-        plt.subplot(2, 3, 1)
-        plt.plot(df['Month'], df['Token Price'],
-                 label='Token Price', color='blue')
-        plt.title(f'Token Price Over {years} Years')
-        plt.xlabel('Month')
-        plt.ylabel('Token Price ($)')
-        plt.grid(True)
-        plt.legend()
-
-        # Subplot 2: Circulating Supply and Total Burnt Tokens
-        plt.subplot(2, 3, 2)
-        plt.plot(df['Month'], df['Circulating Supply'],
-                 label='Circulating Supply', color='orange')
-        plt.plot(df['Month'], df['Total Burnt Tokens'],
-                 label='Total Burnt Tokens', color='green')
-        plt.title('Circulating Supply and Total Burnt Tokens')
-        plt.xlabel('Month')
-        plt.ylabel('Tokens')
-        plt.grid(True)
-        plt.legend()
-
-        # Subplot 3: Market Sentiment Index (MSI)
-        plt.subplot(2, 3, 3)
-        plt.plot(df['Month'], df['Market Sentiment Index'],
-                 label='Market Sentiment Index', color='purple')
-        plt.title(f'Market Sentiment Index Over {years} Years')
-        plt.xlabel('Month')
-        plt.ylabel('MSI')
-        plt.grid(True)
-        plt.legend()
-
-        # Subplot 4: Missions Conducted
-        plt.subplot(2, 3, 4)
-        plt.plot(df['Month'], df['Missions'],
-                 label='Missions Conducted', color='red')
-        plt.title('Missions Conducted')
-        plt.xlabel('Month')
-        plt.ylabel('Number of Missions')
-        plt.grid(True)
-        plt.legend()
-
-        # Subplot 5: DAO Treasury
-        plt.subplot(2, 3, 5)
-        plt.plot(df['Month'], df['DAO Treasury'],
-                 label='DAO Treasury', color='cyan')
-        plt.title('DAO Treasury')
-        plt.xlabel('Month')
-        plt.ylabel('Tokens')
-        plt.grid(True)
-        plt.legend()
-
-        # Subplot 6: Initiator Rewards Pool
-        plt.subplot(2, 3, 6)
-        plt.plot(df['Month'], df['Initiator Rewards Pool'],
-                 label='Initiator Rewards Pool', color='brown')
-        plt.title('Initiator Rewards Pool')
-        plt.xlabel('Month')
-        plt.ylabel('Tokens')
-        plt.grid(True)
-        plt.legend()
-
-        # Adjust layout
-        plt.tight_layout()
-
-        # Save plot
-        plot_filename = f'results/simulation_{years}yrs.png'
-        plt.savefig(plot_filename)
-        plt.close()
-
-        # Interpretation of Results
-        print(f"\n--- \033[7;32mInterpretation after {years} years\033[0m ---")
-        final_price = df['Token Price'].iloc[-1]
-        final_supply = df['Circulating Supply'].iloc[-1]
-        final_total_supply = df['Total Supply'].iloc[-1]
-        total_burnt = df['Total Burnt Tokens'].iloc[-1]
-        dao_balance = df['DAO Treasury'].iloc[-1]
-        print(f"Final Token Price: ${final_price:.2f}")
-        print(f"Final Total Supply: {final_total_supply:,.2f} tokens")
-        print(f"Final Circulating Supply: {final_supply:,.2f} tokens")
-        print(f"Total Tokens Burnt: {total_burnt:,.2f} tokens")
-        print(f"DAO Treasury Balance: {dao_balance:,.2f} tokens")
-        print("----------------------------------------")
+    """Execute the tokenomics simulation and handle output."""
+    config = load_config()
+    for summary in run_all(config):
+        _print_summary(summary)
 
 
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    sys.exit(main())
