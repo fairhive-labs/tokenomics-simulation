@@ -2,86 +2,83 @@
 
 [![CI](https://github.com/fairhive-labs/tokenomics-simulation/actions/workflows/ci.yml/badge.svg)](https://github.com/fairhive-labs/tokenomics-simulation/actions/workflows/ci.yml)
 
-A Monte Carlo simulation of the **$POLN** token economy. Models token price dynamics, circulating supply, burn mechanics, staking, mission growth, DAO treasury flows, vesting schedules, and market sentiment over configurable time horizons (3, 5, 10 years).
+A Monte Carlo simulation of the **$POLN** token economy: token price, circulating
+supply, burns, staking, mission growth, vesting, DAO treasury and market sentiment,
+month by month, over the horizons you choose (3, 5 and 10 years by default).
 
-## How It Works
+## Quick start
 
-The simulation runs a month-by-month loop that:
-
-1. **Generates missions** using logistic growth with seasonal adjustments and random fluctuations
-2. **Processes protocol fees** — staking, burning (on failed missions), and distributing to fellowship members
-3. **Vests tokens** across builders, private sale investors, testnet partners, and initiator rewards (with halving)
-4. **Adjusts token price** based on net demand/supply ratio, market sentiment (bull/bear/normal), and roadmap milestones
-5. **Tracks DAO treasury** consumption over time
-
-All parameters are defined in `config.json`. Each run produces CSV data and plots in `results/`.
-
-## Installation
+Requires Python 3.11 or newer.
 
 ```bash
 git clone https://github.com/fairhive-labs/tokenomics-simulation.git
 cd tokenomics-simulation
-python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
+python -m venv venv && source venv/bin/activate   # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-### Requirements
-
-| Package | Version |
-|---|---|
-| contourpy | 1.3.3 |
-| cycler | 0.12.1 |
-| fonttools | 4.62.1 |
-| kiwisolver | 1.5.0 |
-| matplotlib | 3.10.8 |
-| numpy | 2.4.4 |
-| packaging | 26.0 |
-| pandas | 3.0.2 |
-| pillow | 12.3.0 |
-| pyparsing | 3.3.2 |
-| python-dateutil | 2.9.0.post0 |
-| pytz | 2026.1.post1 |
-| six | 1.17.0 |
-| tzdata | 2026.1 |
-
-## Usage
-
-### Configure
-
-Edit `config.json` to adjust simulation parameters (see [Parameters](#parameters) below).
-
-### Run
-
-```bash
 python main.py
 ```
 
-### Results
+You get a summary in the terminal, plus a CSV and a chart per horizon in `results/`.
 
-Output goes to `results/`:
-- `simulation_data_{N}yrs.csv` — monthly data for each time horizon
-- `simulation_{N}yrs.png` — 6-panel plot (token price, supply & burn, market sentiment, missions, DAO treasury, initiator rewards)
+## Usage
 
-## Sample Output
+Every option is optional. Without any, the values in `config.json` are used.
 
-### 3-Year Simulation
+| Option | What it does | Default |
+|---|---|---|
+| `-y`, `--years N [N ...]` | Horizon(s) to simulate, in years | `simulation_years` in the config |
+| `-s`, `--seed N` | Random seed (same seed = same result) | `random_seed` in the config |
+| `-c`, `--config PATH` | Use another config file | `config.json` |
+| `-o`, `--output DIR` | Where to write CSV and PNG files | `results` |
+| `--no-plot` | Skip the charts (CSV and summary only) | off |
+| `-h`, `--help` | Show the help | |
+
+Examples:
+
+```bash
+python main.py --years 5                  # a single 5-year run
+python main.py --seed 7 --output runs/s7  # another random scenario, in its own folder
+python main.py -c my-scenario.json        # your own parameters
+python main.py --years 1 2 3 --no-plot    # quick runs, data only
+```
+
+To explore a scenario, copy `config.json`, change the values (see
+[Parameters](#parameters)), and pass it with `-c`. Set `random_seed` to `null`
+for a different random run each time. Invalid configs are reported with a clear
+error message.
+
+### Outputs
+
+For each horizon `N`, in the output folder:
+
+- `simulation_data_{N}yrs.csv`: one row per month (price, supply, burns, staking,
+  missions, DAO treasury, rewards, sentiment, ...)
+- `simulation_{N}yrs.png`: 6 charts (token price, supply and burns, market
+  sentiment, missions, DAO treasury, initiator rewards pool)
+
+## How it works
+
+Each simulated month:
+
+1. **Missions** grow along a logistic curve, with seasonality and random noise.
+2. **Protocol fees** are staked, burnt (on failed missions) or distributed to fellowship members.
+3. **Vesting** releases tokens to builders, private-sale investors, testnet partners and initiators (rewards halve as the pool depletes).
+4. **Price** moves with net demand vs. supply, market sentiment (bull/bear/normal) and roadmap milestones, capped at ±20% per month.
+5. **DAO treasury** is spent at a yearly rate once consumption starts.
+
+## Sample output
+
+### 3 years
 
 ![3-year simulation](results/simulation_3yrs.png)
 
-Short-term view showing early mission growth ramp-up, initial token vesting effects, and price discovery phase.
-
-### 5-Year Simulation
+### 5 years
 
 ![5-year simulation](results/simulation_5yrs.png)
 
-Mid-term view capturing the full logistic growth S-curve, reward halving events, and DAO treasury drawdown kicking in.
-
-### 10-Year Simulation
+### 10 years
 
 ![10-year simulation](results/simulation_10yrs.png)
-
-Long-term view showing mission saturation at carrying capacity, circulating supply stabilization, cumulative burn impact, and sustained market sentiment cycles.
 
 ## Parameters
 
@@ -163,53 +160,26 @@ Rewards halve as the pool depletes, with a floor at `minimum_reward_per_mission`
 
 ## Development
 
-Install the runtime and tooling dependencies, then run the quality gate:
-
 ```bash
 pip install -r requirements-dev.txt
 
-pytest                       # unit tests + coverage (fails under 90%)
-pylint simulation.py main.py # lint
-bandit -r simulation.py main.py  # security scan
-pip-audit -r requirements.txt    # dependency vulnerability audit
+pytest                             # tests + coverage (must stay at or above 90%)
+pylint simulation.py main.py       # lint
+bandit -r simulation.py main.py    # security scan
+pip-audit -r requirements-dev.txt  # known-vulnerability check on dependencies
 ```
 
-The same checks run in CI (`.github/workflows/ci.yml`) on Python 3.11 and 3.12.
-The simulation is deterministic under a fixed `random_seed`, so tests assert
-exact reproducibility. Runs are driven by `numpy`'s `Generator` (seedable and
-free of the insecure-PRNG static-analysis warning).
-
-## Notes on Model Corrections
-
-This release corrects a few modelling issues from earlier versions:
-
-- **Testnet vesting** now releases a fixed linear tranche computed from the
-  initial allocation, so testnet tokens fully distribute over their window
-  (previously the tranche was recomputed on the shrinking balance, decaying
-  exponentially and never fully vesting).
-- **Reward halving** is evaluated every month rather than only in months with
-  missions.
-- **Private-sale accounting** is consistent between supply-clamping steps
-  (zero-vesting rounds are counted as liquid once, not double-counted).
-
-Because of these fixes and seed-based determinism, numeric outputs differ from
-pre-1.0 runs.
+CI runs the same checks on Python 3.11, 3.12 and 3.13. Dependabot opens weekly
+PRs for Python packages and GitHub Actions, so security fixes land quickly.
 
 ## Disclaimer
 
-This simulation is a modeling tool for exploring PoLN tokenomics scenarios. Results are estimates based on configurable assumptions and stochastic processes — they should not be used as the sole basis for financial decisions.
-
-## Contributing
-
-1. Fork the repo
-2. Create a feature branch (`git checkout -b feature/your-feature`)
-3. Commit and push your changes
-4. Open a Pull Request
+This is a modelling tool for exploring PoLN tokenomics scenarios. Results are
+estimates based on configurable assumptions and random processes. Do not use
+them as the sole basis for financial decisions.
 
 ## License
 
-[MIT](LICENSE) - fairhive-labs
-
-## Contact
-
-Questions or issues? [Open an issue](https://github.com/fairhive-labs/tokenomics-simulation/issues) or email <contact@poln.org>.
+[MIT](LICENSE), fairhive-labs. Questions or issues:
+[open an issue](https://github.com/fairhive-labs/tokenomics-simulation/issues)
+or email <contact@poln.org>.
