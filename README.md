@@ -8,7 +8,7 @@ month by month, over the horizons you choose (3, 5 and 10 years by default).
 
 ## Quick start
 
-Requires Python 3.11 or newer.
+Requires Python 3.12 or newer.
 
 ```bash
 git clone https://github.com/fairhive-labs/tokenomics-simulation.git
@@ -169,7 +169,7 @@ bandit -r simulation.py main.py    # security scan
 pip-audit -r requirements-dev.txt  # known-vulnerability check on dependencies
 ```
 
-CI runs the same checks on Python 3.11, 3.12 and 3.13. Dependabot opens weekly
+CI runs the same checks on Python 3.12 and 3.13. Dependabot opens weekly
 PRs for Python packages and GitHub Actions, so security fixes land quickly.
 
 ## Disclaimer
